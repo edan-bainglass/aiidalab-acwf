@@ -1,0 +1,31 @@
+.acwf-app {
+  gap: 0.5rem;
+}
+
+.app-header {
+  text-align: center;
+}
+
+.workflow-selector-row {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.structure-manager > div:not(:nth-child(2)) {
+  display: none;
+}
+
+.workflow-inputs .widget-label {
+  width: 225px;
+  margin-right: 8px;
+  text-align: right;
+}
+
+.workflow-inputs .widget-hbox .widget-label {
+  margin-right: 6px;
+}
+
+.workflow-inputs .widget-hbox .widget-text {
+  width: 67px;
+}
