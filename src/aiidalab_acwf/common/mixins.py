@@ -1,0 +1,201 @@
+from __future__ import annotations
+
+import contextlib
+import typing as t
+import warnings
+
+import traitlets as tl
+
+from aiida import orm
+from aiida.common.exceptions import NotExistent
+
+from .mvc import Model
+
+StructureType = orm.StructureData
+
+
+class HasInputStructure(tl.HasTraits):
+    structure_uuid = tl.Unicode(None, allow_none=True)
+
+    @property
+    def input_structure(self) -> StructureType | None:
+        if not self.structure_uuid:
+            return None
+        with contextlib.suppress(NotExistent):
+            return t.cast(StructureType, orm.load_node(self.structure_uuid))
+
+    @property
+    def has_structure(self):
+        return self.input_structure is not None
+
+    @property
+    def has_pbc(self):
+        return not self.has_structure or any(self.input_structure.pbc)
+
+    @property
+    def has_tags(self):
+        return self.has_structure and any(
+            not kind_name.isalpha()
+            for kind_name in self.input_structure.get_kind_names()
+        )
+
+
+M = t.TypeVar("M", bound=Model)
+
+
+class HasModels(t.Generic[M]):
+    def __init__(self):
+        self._models: dict[str, M] = {}
+
+    def has_model(self, identifier: str):
+        return identifier in self._models
+
+    def add_model(self, identifier: str, model: M):
+        self._models[identifier] = model
+        self._link_model(model)
+
+    def add_models(self, models: dict[str, M]):
+        for identifier, model in models.items():
+            self.add_model(identifier, model)
+
+    def get_model(self, identifier: str) -> M:
+        keys = identifier.split(".", 1)
+        if self.has_model(keys[0]):
+            if len(keys) == 1:
+                return self._models[identifier]
+            else:
+                sub_model = self._models[keys[0]]
+                if isinstance(sub_model, HasModels):
+                    return sub_model.get_model(keys[1])
+                raise TypeError(
+                    f"Model with identifier '{identifier}' does not have sub-models."
+                )
+        raise ValueError(f"Model with identifier '{identifier}' not found.")
+
+    def get_models(self) -> t.Iterable[tuple[str, M]]:
+        return self._models.items()
+
+    def _link_model(self, model: M):
+        assert isinstance(model, Model), "HasModels only works with Model instances"
+        tl.dlink(
+            (self, "locked"),
+            (model, "locked"),
+        )
+        if isinstance(self, HasBlockers) and isinstance(model, HasBlockers):
+            tl.dlink(
+                (model, "blockers"),
+                (self, "blockers"),
+            )
+        for dependency in model.dependencies:
+            dependency_parts = dependency.rsplit(".", 1)
+            if len(dependency_parts) == 1:  # from parent
+                target_model = self
+                if dependency == "input_structure":
+                    # BACKWARDS COMPATIBLE - remove when all plugins are updated!
+                    warnings.warn(
+                        (
+                            "The `input_structure` dependency is deprecated. "
+                            "Please use the `structure_uuid` dependency instead. "
+                            "`input_structure` is now a property that loads the "
+                            "structure by uuid."
+                        ),
+                        DeprecationWarning,
+                        stacklevel=2,
+                    )
+                    trait = "structure_uuid"
+                else:
+                    trait = dependency
+            else:  # from sibling
+                sibling, trait = dependency_parts
+                target_model = self.get_model(sibling)
+            tl.dlink(
+                (target_model, trait),
+                (model, trait),
+            )
+
+
+class HasProcess(tl.HasTraits):
+    process_uuid = tl.Unicode(None, allow_none=True)
+    monitor_counter = tl.Int(0)  # used for continuous updates
+
+    @property
+    def process(self) -> orm.WorkChainNode | None:
+        if not self.process_uuid:
+            return None
+        with contextlib.suppress(NotExistent):
+            return t.cast(orm.WorkChainNode, orm.load_node(self.process_uuid))
+
+    @property
+    def has_process(self):
+        return self.process is not None
+
+    @property
+    def inputs(self) -> orm.NodeLinksManager | list:
+        return self.process.inputs if self.has_process else []
+
+    @property
+    def properties(self) -> list:
+        # read the attributes directly instead of using the `get_list` method
+        # to avoid error in case of the orm.List object being converted to a orm.Data object
+        return (
+            self.inputs.properties.base.attributes.get("list")
+            if self.has_process
+            else []
+        )
+
+    @property
+    def outputs(self):
+        return self.process.outputs if self.has_process else []
+
+
+class Confirmable(tl.HasTraits):
+    confirmed = tl.Bool(False)
+
+    confirmation_exceptions = [
+        "confirmed",
+    ]
+
+    def confirm(self):
+        self.confirmed = True
+
+    @tl.observe(tl.All)
+    def _on_any_change(self, change):
+        if change and change["name"] not in self.confirmation_exceptions:
+            self._unconfirm()
+
+    def _unconfirm(self):
+        self.confirmed = False
+
+
+class HasBlockers(tl.HasTraits):
+    blockers = tl.List(tl.Unicode())
+    blocker_messages = tl.Unicode("")
+
+    @property
+    def is_blocked(self):
+        return any(self.blockers)
+
+    def update_blockers(self):
+        blockers = list(self._check_blockers())
+        if isinstance(self, HasModels):
+            for _, model in self.get_models():
+                if isinstance(model, HasBlockers):
+                    blockers += model.blockers
+        self.blockers = blockers
+
+    def update_blocker_messages(self):
+        if self.is_blocked:
+            formatted = "\n".join(f"<li>{item}</li>" for item in self.blockers)
+            self.blocker_messages = f"""
+                <div class="alert alert-danger" style="margin-top: 8px;">
+                    <b>The step is blocked due to the following reason(s):</b>
+                    <ul>
+                        {formatted}
+                    </ul>
+                </div>
+            """
+        else:
+            self.blocker_messages = ""
+
+    def _check_blockers(self):
+        raise NotImplementedError

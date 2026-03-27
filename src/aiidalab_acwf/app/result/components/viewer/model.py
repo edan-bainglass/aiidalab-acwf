@@ -1,0 +1,22 @@
+import ipywidgets as ipw
+
+from aiidalab_acwf.app.result.components import ResultsComponentModel
+from aiidalab_acwf.common.mixins import HasModels
+from aiidalab_acwf.common.panel import ResultsModel
+
+
+class WorkflowResultsViewerModel(
+    ResultsComponentModel,
+    HasModels[ResultsModel],
+):
+    identifier = "workflow results"
+
+    def _link_model(self, model: ResultsModel):
+        ipw.dlink(
+            (self, "process_uuid"),
+            (model, "process_uuid"),
+        )
+        ipw.dlink(
+            (self, "monitor_counter"),
+            (model, "monitor_counter"),
+        )
