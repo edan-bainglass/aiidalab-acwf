@@ -11,8 +11,52 @@ class AfmConfigurationSettingsModel(ConfigurationSettingsModel):
     title = "AFM"
     identifier = "afm"
 
+    # Partial list from:
+    # https://github.com/Probe-Particle/ppafm/wiki/Setting-simulation-parameters
+
+    # Mode
+    mode = tl.Unicode("empirical")
+    mode_options = tl.List(tl.Unicode(), ["empirical", "hartree"])
+
+    # Force-field grid parameters
+    pbc = tl.Bool(True)
+    grid_nx = tl.Int(-1)
+    grid_ny = tl.Int(-1)
+    grid_nz = tl.Int(-1)
+    grid_ax = tl.Float(20.0)
+    grid_ay = tl.Float(0.0)
+    grid_az = tl.Float(0.0)
+    grid_bx = tl.Float(0.0)
+    grid_by = tl.Float(20.0)
+    grid_bz = tl.Float(0.0)
+    grid_cx = tl.Float(0.0)
+    grid_cy = tl.Float(0.0)
+    grid_cz = tl.Float(20.0)
+
+    # Tip parameters
+    probe_type = tl.Unicode("O")
+    probe_type_options = tl.List(tl.Unicode(), ["O", "CO"])
+    charge = tl.Float(0.0)
+    r0_probe_x = tl.Float(0.0)
+    r0_probe_y = tl.Float(0.0)
+    r0_probe_z = tl.Float(4.0)
     tip: tl.Unicode = tl.Unicode("s")
-    tip_options = tl.List(
-        trait=tl.Unicode(),
-        default_value=["s", "pz", "dz2"],
-    )
+    tip_options = tl.List(tl.Unicode(), ["s", "pz", "dz2"])
+    klat = tl.Float(0.5)
+    krad = tl.Float(20.0)
+    sigma = tl.Float(0.7)
+
+    # Scan parameters
+    scan_step_x = tl.Float(20.0)
+    scan_step_y = tl.Float(20.0)
+    scan_step_z = tl.Float(8.0)
+    scan_min_x = tl.Float(0.0)
+    scan_min_y = tl.Float(0.0)
+    scan_min_z = tl.Float(5.0)
+    scan_max_x = tl.Float(0.1)
+    scan_max_y = tl.Float(0.1)
+    scan_max_z = tl.Float(0.1)
+
+    # Conversion parameters Fz -> df
+    f0_cantilever = tl.Float(30300.0)
+    amplitude = tl.Float(1.0)

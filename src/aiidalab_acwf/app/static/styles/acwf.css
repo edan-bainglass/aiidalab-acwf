@@ -32,6 +32,18 @@
 
 .settings-label {
   width: 120px;
-  padding-right: 2px;
+  text-align: right;
+}
+
+.afm-configuration-settings-panel .widget-checkbox {
+  width: fit-content;
+}
+
+.afm-configuration-settings-panel .text-widget {
+  width: auto;
+}
+
+.afm-configuration-settings-panel .widget-label {
+  width: 175px;
   text-align: right;
 }
