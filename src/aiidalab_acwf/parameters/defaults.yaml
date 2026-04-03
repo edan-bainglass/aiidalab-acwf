@@ -5,7 +5,7 @@ common:
     relax_type: positions_cell
     spin_type: none
     electronic_type: metal
-    protocol: balanced
+    protocol: moderate
 
 codes:
 

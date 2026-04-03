@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from aiida_common_workflows.workflows.relax.workchain import CommonRelaxWorkChain
+from aiida_common_workflows.workflows.relax.generator import CommonRelaxInputGenerator
 
 from aiida import orm
 from aiida.common import AttributeDict
 from aiida.engine import ToContext, WorkChain, if_
-from aiida.plugins import DataFactory
+from aiida.plugins import DataFactory, WorkflowFactory
 from aiidalab_acwf.plugins.utils import get_entry_items
 
 XyData = DataFactory("core.array.xy")
@@ -13,7 +13,7 @@ StructureData = DataFactory("core.structure")
 BandsData = DataFactory("core.array.bands")
 Orbital = DataFactory("core.orbital")
 
-plugin_entries = get_entry_items("acwf", "workchain")
+plugin_entries = get_entry_items("aiidalab_acwf", "workchain")
 
 
 class AcwfAppWorkChain(WorkChain):
@@ -35,8 +35,14 @@ class AcwfAppWorkChain(WorkChain):
             default=orm.List,
             help="The properties to compute in the workflow.",
         )
+        spec.input(
+            "engine",
+            valid_type=orm.Str,
+            default=lambda: orm.Str("quantum_espresso"),
+            help="The quantum engine to use for the calculations.",
+        )
         spec.expose_inputs(
-            CommonRelaxWorkChain,
+            CommonRelaxInputGenerator,
             namespace="relax",
             exclude=("structure",),
             namespace_options={
@@ -77,19 +83,14 @@ class AcwfAppWorkChain(WorkChain):
                 cls.run_relax,
                 cls.inspect_relax,
             ),
-            cls.run_workflow,
-            cls.inspect_workflow,
+            cls.run_plugin,
+            cls.inspect_plugin,
         )
 
         spec.exit_code(
             401,
             "ERROR_SUB_PROCESS_FAILED_RELAX",
-            message="The PwRelaxWorkChain sub process failed",
-        )
-        spec.exit_code(
-            402,
-            "ERROR_SUB_PROCESS_FAILED_PDOS",
-            message="The PdosWorkChain sub process failed",
+            message="The CommonRelaxWorkChain sub process failed",
         )
 
         spec.output("structure", valid_type=StructureData, required=False)
@@ -102,15 +103,39 @@ class AcwfAppWorkChain(WorkChain):
         **kwargs,
     ):
         parameters = parameters or {}
+        properties = parameters["properties"]
+        engine = parameters.get("engine", "quantum_espresso")
         codes = parameters.pop("codes", {})
 
         for _, plugin_codes in codes.items():
-            for _, value in plugin_codes["codes"].items():
+            for _, value in plugin_codes.items():
                 if value["code"] is not None:
-                    value["code"] = orm.load_node(value["code"])
+                    value["code"] = orm.load_code(value["code"])
+
+        # TODO handle pseudos
 
         builder = cls.get_builder()
         builder.structure = structure
+
+        if "relax" in properties:
+            relax_parameters = parameters.get("common", {})
+            RelaxWorkChain = WorkflowFactory(f"common_workflows.relax.{engine}")
+            input_generator = RelaxWorkChain.get_input_generator()
+            relax_builder = input_generator.get_builder(
+                structure=structure,
+                engines={
+                    "relax": {
+                        "code": codes.get(engine, {}).get("relax", {}).get("code"),
+                        "options": {},
+                    },
+                },
+                **relax_parameters,
+                **kwargs,
+            )
+            builder.relax = relax_builder
+        else:
+            builder.pop("relax", None)
+
         return builder
 
     def setup(self):
@@ -123,13 +148,16 @@ class AcwfAppWorkChain(WorkChain):
 
     def run_relax(self):
         inputs = AttributeDict(
-            self.exposed_inputs(CommonRelaxWorkChain, namespace="relax")
+            self.exposed_inputs(CommonRelaxInputGenerator, namespace="relax")
         )
         inputs.metadata.call_link_label = "relax"
         inputs.structure = self.ctx.current_structure
 
-        # TODO we should be submitting the code-specific implementation here
-        running = self.submit(CommonRelaxWorkChain, **inputs)
+        engine = self.inputs.engine.value
+        RelaxWorkChain = WorkflowFactory(f"common_workflows.relax.{engine}")
+        input_generator = RelaxWorkChain.get_input_generator()
+        builder = input_generator.get_builder(**inputs)
+        running = self.submit(builder)
 
         self.report(f"launching CommonRelaxWorkChain<{running.pk}>")
 
@@ -141,25 +169,56 @@ class AcwfAppWorkChain(WorkChain):
 
         if not workchain.is_finished_ok:
             self.report(
-                f"PwRelaxWorkChain failed with exit status {workchain.exit_status}"
+                f"CommonRelaxWorkChain failed with exit status {workchain.exit_status}"
             )
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_RELAX
 
-        if "output_structure" in workchain.outputs:
-            self.ctx.current_structure = workchain.outputs.output_structure
-            self.ctx.current_number_of_bands = (
-                workchain.outputs.output_parameters.get_attribute("number_of_bands")
-            )
+        if "relaxed_structure" in workchain.outputs:
+            self.ctx.current_structure = workchain.outputs.relaxed_structure
             self.out("structure", self.ctx.current_structure)
 
     def should_run_plugin(self, name):
         return name in self.inputs
 
-    def run_workflow(self):
-        pass
+    def run_plugin(self):
+        """Run the plugin `WorkChain`."""
+        plugin_running = {}
+        for name, entry_point in plugin_entries.items():
+            if not self.should_run_plugin(name):
+                continue
+            self.report(f"Run workflow: {name}")
+            plugin_workchain = entry_point["workchain"]
+            inputs = AttributeDict(
+                self.exposed_inputs(plugin_workchain, namespace=name)
+            )
+            inputs.metadata.call_link_label = name
+            if entry_point.get("update_inputs"):
+                entry_point["update_inputs"](inputs, self.ctx)
+            inputs = prepare_process_inputs(plugin_workchain, inputs)
+            running = self.submit(plugin_workchain, **inputs)
+            self.report(f"launching plugin {name} <{running.pk}>")
+            plugin_running[name] = running
 
-    def inspect_workflow(self):
-        pass
+        return ToContext(**plugin_running)
+
+    def inspect_plugin(self):
+        """Verify that the `pluginWorkChain` finished successfully."""
+        self.report("Inspect plugins:")
+        for name, entry_point in plugin_entries.items():
+            if not self.should_run_plugin(name):
+                continue
+            workchain = self.ctx[name]
+            if not workchain.is_finished_ok:
+                self.report(
+                    f"{name} WorkChain failed with exit status {workchain.exit_status}"
+                )
+                return self.exit_codes.get(f"ERROR_SUB_PROCESS_FAILED_{name}")
+            # Attach the output nodes directly as outputs of the workchain.
+            self.out_many(
+                self.exposed_outputs(
+                    workchain, entry_point["workchain"], namespace=name
+                )
+            )
 
     def on_terminated(self):
         """Clean the working directories of all child calculations if `clean_workdir=True` in the inputs."""
@@ -183,3 +242,51 @@ class AcwfAppWorkChain(WorkChain):
             self.report(
                 f"cleaned remote folders of calculations: {' '.join(map(str, cleaned_calcs))}"
             )
+
+
+def prepare_process_inputs(process, inputs):
+    """Prepare the inputs for submission for the given process, according to its spec.
+
+    That is to say that when an input is found in the inputs that corresponds to an input port in the spec of the
+    process that expects a `Dict`, yet the value in the inputs is a plain dictionary, the value will be wrapped in by
+    the `Dict` class to create a valid input.
+
+    :param process: sub class of `Process` for which to prepare the inputs dictionary
+    :param inputs: a dictionary of inputs intended for submission of the process
+    :return: a dictionary with all bare dictionaries wrapped in `Dict` if dictated by the process spec
+    """
+    prepared_inputs = wrap_bare_dict_inputs(process.spec().inputs, inputs)
+    return AttributeDict(prepared_inputs)
+
+
+def wrap_bare_dict_inputs(port_namespace, inputs):
+    """Wrap bare dictionaries in `inputs` in a `Dict` node if dictated by the corresponding port in given namespace.
+
+    :param port_namespace: a `PortNamespace`
+    :param inputs: a dictionary of inputs intended for submission of the process
+    :return: a dictionary with all bare dictionaries wrapped in `Dict` if dictated by the port namespace
+    """
+    from aiida.engine.processes import PortNamespace
+
+    wrapped = {}
+
+    for key, value in inputs.items():
+        if key not in port_namespace:
+            wrapped[key] = value
+            continue
+
+        port = port_namespace[key]
+        valid_types = (
+            port.valid_type
+            if isinstance(port.valid_type, (list, tuple))
+            else (port.valid_type,)
+        )
+
+        if isinstance(port, PortNamespace):
+            wrapped[key] = wrap_bare_dict_inputs(port, value)
+        elif orm.Dict in valid_types and isinstance(value, dict):
+            wrapped[key] = orm.Dict(value)
+        else:
+            wrapped[key] = value
+
+    return wrapped

@@ -21,7 +21,7 @@ class ConfigurationStepModel(
 ):
     identifier = "configuration"
 
-    workflow_options = tl.List(trait=tl.Tuple(tl.Unicode(), tl.Unicode()))
+    workflow_options = tl.List(tl.Tuple(tl.Unicode(), tl.Unicode()))
     workflow = tl.Unicode()
 
     installed_properties_fetched = tl.Bool(False)

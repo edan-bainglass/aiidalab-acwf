@@ -140,7 +140,7 @@ class ConfigurationStep(ConfirmableDependentWizardStep[ConfigurationStepModel]):
             panel: ConfigurationSettingsPanel = configuration["panel"](model=model)
             self.settings[identifier] = panel
 
-            workflows.append((configuration.get("title", identifier), identifier))
+            workflows.append((model.title, identifier))
 
             def toggle_workflow_settings_panel(_, model=model):
                 model.update()

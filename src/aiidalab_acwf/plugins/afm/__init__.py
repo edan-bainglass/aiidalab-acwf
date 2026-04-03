@@ -1,4 +1,5 @@
 from .configuration import AfmConfigurationSettingsModel, AfmConfigurationSettingsPanel
+from .workflow import workchain_and_builder
 
 afm = {
     "configuration": {
@@ -7,7 +8,8 @@ afm = {
     },
     "resources": {
         "scf": None,
+        "pp": None,
         "ppafm": None,
     },
-    "workchain": None,
+    "workchain": workchain_and_builder,
 }

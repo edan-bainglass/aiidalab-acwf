@@ -15,8 +15,14 @@ class AfmConfigurationSettingsModel(ConfigurationSettingsModel):
     # https://github.com/Probe-Particle/ppafm/wiki/Setting-simulation-parameters
 
     # Mode
+    mode_options = tl.List(
+        tl.Tuple(tl.Unicode(), tl.Unicode()),
+        [
+            ("Empirical", "empirical"),
+            ("Hartree", "hartree"),
+        ],
+    )
     mode = tl.Unicode("empirical")
-    mode_options = tl.List(tl.Unicode(), ["empirical", "hartree"])
 
     # Force-field grid parameters
     pbc = tl.Bool(True)
@@ -34,14 +40,14 @@ class AfmConfigurationSettingsModel(ConfigurationSettingsModel):
     grid_cz = tl.Float(20.0)
 
     # Tip parameters
-    probe_type = tl.Unicode("O")
     probe_type_options = tl.List(tl.Unicode(), ["O", "CO"])
+    probe_type = tl.Unicode("O")
     charge = tl.Float(0.0)
     r0_probe_x = tl.Float(0.0)
     r0_probe_y = tl.Float(0.0)
     r0_probe_z = tl.Float(4.0)
-    tip: tl.Unicode = tl.Unicode("s")
     tip_options = tl.List(tl.Unicode(), ["s", "pz", "dz2"])
+    tip: tl.Unicode = tl.Unicode("s")
     klat = tl.Float(0.5)
     krad = tl.Float(20.0)
     sigma = tl.Float(0.7)

@@ -24,19 +24,19 @@ class CommonConfigurationSettingsModel(
     relax_type = tl.Unicode(NO_RELAXATION_OPTION[-1], allow_none=True)
 
     electronic_type_options = tl.List(
-        trait=tl.List(tl.Unicode()),
-        default_value=[
-            ["Metal", "metal"],
-            ["Insulator", "insulator"],
+        tl.Tuple(tl.Unicode(), tl.Unicode()),
+        [
+            ("Metal", "metal"),
+            ("Insulator", "insulator"),
         ],
     )
     electronic_type = tl.Unicode(DEFAULT["common"]["electronic_type"])
 
     spin_type_options = tl.List(
-        trait=tl.List(tl.Unicode()),
-        default_value=[
-            ["Off", "none"],
-            ["On", "collinear"],
+        tl.Tuple(tl.Unicode(), tl.Unicode()),
+        [
+            ("Off", "none"),
+            ("On", "collinear"),
         ],
     )
     spin_type = tl.Unicode(DEFAULT["common"]["spin_type"])
@@ -45,11 +45,11 @@ class CommonConfigurationSettingsModel(
     threshold_stress = tl.Float(0.0)
 
     protocol_options = tl.List(
-        trait=tl.Tuple(tl.Unicode(), tl.Unicode()),
-        default_value=[
+        tl.Tuple(tl.Unicode(), tl.Unicode()),
+        [
             ("Fast", "fast"),
-            ("Balanced", "balanced"),
-            ("Stringent", "stringent"),
+            ("Moderate", "moderate"),
+            ("Precise", "precise"),
         ],
     )
     protocol = tl.Unicode(DEFAULT["common"]["protocol"])
