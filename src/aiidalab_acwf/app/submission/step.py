@@ -1,32 +1,17 @@
-"""Widgets for the submission of bands work chains.
-
-Authors: AiiDAlab team
-"""
+"""Widgets for workflow metadata and submission."""
 
 from __future__ import annotations
 
 import ipywidgets as ipw
 
-from aiidalab_acwf.common.code import PluginCodes, PwCodeModel
 from aiidalab_acwf.common.infobox import InAppGuide
-from aiidalab_acwf.common.panel import (
-    PluginResourceSettingsModel,
-    PluginResourceSettingsPanel,
-    ResourceSettingsPanel,
-)
-from aiidalab_acwf.common.widgets import LinkButton
 from aiidalab_acwf.common.wizard import ConfirmableDependentWizardStep
-from aiidalab_acwf.parameters import DEFAULT_PARAMETERS
-from aiidalab_acwf.plugins.utils import get_entry_items
 
-from .global_settings import GlobalResourceSettingsModel, GlobalResourceSettingsPanel
 from .model import SubmissionStepModel
-
-DEFAULT: dict = DEFAULT_PARAMETERS  # type: ignore
 
 
 class SubmissionStep(ConfirmableDependentWizardStep[SubmissionStepModel]):
-    _missing_message = "Missing input structure and/or workflow configuration"
+    _missing_message = "Missing input structure, workflow configuration, and/or resources"
 
     def __init__(self, model: SubmissionStepModel, **kwargs):
         super().__init__(
@@ -39,27 +24,6 @@ class SubmissionStep(ConfirmableDependentWizardStep[SubmissionStepModel]):
             **kwargs,
         )
 
-        global_resources_model = GlobalResourceSettingsModel(
-            default_codes=DEFAULT["codes"],
-            default_user_email=self._model.default_user_email,
-        )
-        self.global_resources = GlobalResourceSettingsPanel(
-            model=global_resources_model
-        )
-        self._model.add_model("global", global_resources_model)
-        ipw.dlink(
-            (self._model, "plugin_overrides"),
-            (global_resources_model, "plugin_overrides"),
-        )
-        global_resources_model.observe(
-            self._on_plugin_blockers_change,
-            "blockers",
-        )
-        global_resources_model.observe(
-            self._on_plugin_warning_messages_change,
-            ["warning_messages"],
-        )
-
         self._model.observe(
             self._on_input_structure_change,
             "structure_uuid",
@@ -69,19 +33,13 @@ class SubmissionStep(ConfirmableDependentWizardStep[SubmissionStepModel]):
             "input_parameters",
         )
         self._model.observe(
+            self._on_resources_change,
+            "resources",
+        )
+        self._model.observe(
             self._on_process_change,
             "process_uuid",
         )
-        self._model.observe(
-            self._on_fetched_resources_change,
-            "fetched_resources",
-        )
-
-        self.settings = {
-            "global": self.global_resources,
-        }
-
-        self._fetch_plugin_resource_settings()
 
     def reset(self):
         self._model.reset()
@@ -112,153 +70,25 @@ class SubmissionStep(ConfirmableDependentWizardStep[SubmissionStepModel]):
             (self.warning_messages, "value"),
         )
 
-        self.setup_new_codes_button = LinkButton(
-            description="Setup resources",
-            link="../home/code_setup.ipynb",
-            icon="database",
-        )
-
-        self.refresh_resources_button = ipw.Button(
-            description="Refresh resources",
-            icon="refresh",
-            tooltip="Refresh the list of available codes",
-            button_style="warning",
-            layout=ipw.Layout(width="fit-content", margin="2px 2px 12px"),
-        )
-        self.refresh_resources_button.on_click(self._refresh_resources)
-
-        self.tabs = ipw.Tab(
-            layout=ipw.Layout(min_height="250px"),
-            selected_index=None,
-        )
-        self.tabs.observe(
-            self._on_tab_change,
-            "selected_index",
-        )
-
         self.content.children = [
             InAppGuide(identifier="submission-step"),
-            ipw.HTML("""
-                <div style="line-height: 140%; padding-top: 0px; padding-bottom: 10px">
-                    Select the codes to use for running the calculations. The codes on
-                    the local machine (localhost) are installed by default, but you can
-                    configure new ones on potentially more powerful machines by clicking
-                    on <i class="fa fa-database"></i> <b>Setup resources</b> (also at
-                    the top of the app). Make sure to click the <b>Refresh resources</b>
-                    button below after making changes to AiiDA resources to update the
-                    app resources.
-                </div>
-            """),
-            ipw.HBox(
-                children=[
-                    self.setup_new_codes_button,
-                    self.refresh_resources_button,
-                ],
-                layout=ipw.Layout(grid_gap="5px"),
-            ),
-            self.tabs,
-            ipw.HTML("""
-                <div style="line-height: 140%; padding-top: 0px; padding-bottom: 5px">
-                    <h4 style="margin-bottom: 5px;">Workflow label and description</h4>
-                </div>
-                <div style="line-height: 140%; padding-top: 0px; padding-bottom: 10px">
-                    Label your job and provide a brief description. These details
-                    help identify the job later and make the search process easier.
-                    While optional, adding a description is recommended for better
-                    clarity.
-                </div>
-            """),
             self.process_label,
             self.process_description,
+            self.warning_messages,
             self.confirm_box,
         ]
 
-    def _post_render(self):
-        super()._post_render()
-        self._update_tabs()
-
-    def _on_tab_change(self, change):
-        if (tab_index := change["new"]) is None:
-            return
-        tab: ResourceSettingsPanel = self.tabs.children[tab_index]  # type: ignore
-        tab.render()
-
     def _on_input_structure_change(self, _):
         self._model.update()
+        self._model.update_state()
 
     def _on_input_parameters_change(self, _):
         self._model.update()
-        self._update_tabs()
+        self._model.update_state()
 
-    def _on_plugin_overrides_change(self, _):
-        self._model.update_plugin_overrides()
-
-    def _on_plugin_blockers_change(self, _):
-        self._model.update_blockers()
-
-    def _on_plugin_warning_messages_change(self, _):
-        self._model.update_warnings()
+    def _on_resources_change(self, _):
+        self._model.update()
+        self._model.update_state()
 
     def _on_process_change(self, _):
         self._model.update_process_metadata()
-
-    def _on_fetched_resources_change(self, _):
-        self._update_tabs()
-
-    def _refresh_resources(self, _=None):
-        for _, model in self._model.get_models():
-            model.refresh_codes()
-
-    def _update_tabs(self):
-        children = []
-        titles = []
-        for identifier, model in self._model.get_models():
-            if model.include:
-                settings = self.settings[identifier]
-                titles.append(model.title)
-                children.append(settings)
-        if self.rendered:
-            self.tabs.selected_index = None
-            self.tabs.children = children
-            for i, title in enumerate(titles):
-                self.tabs.set_title(i, title)
-            self.tabs.selected_index = 0
-
-    def _fetch_plugin_resource_settings(self):
-        entries = get_entry_items("acwf", "resources")
-        codes: PluginCodes = {
-            "dft": {
-                "pw": PwCodeModel(),
-            },
-        }
-        for identifier, resources in entries.items():
-            for key in ("panel", "model"):
-                if key not in resources:
-                    raise ValueError(f"Entry {identifier} is missing the '{key}' key")
-
-            model: PluginResourceSettingsModel = resources["model"](
-                default_codes=DEFAULT["codes"],
-                default_user_email=self._model.default_user_email,
-            )
-            model.observe(
-                self._on_plugin_overrides_change,
-                "override",
-            )
-            model.observe(
-                self._on_plugin_blockers_change,
-                "blockers",
-            )
-            model.observe(
-                self._on_plugin_warning_messages_change,
-                "warning_messages",
-            )
-            self._model.add_model(identifier, model)
-
-            panel: PluginResourceSettingsPanel = resources["panel"](model=model)
-            self.settings[identifier] = panel
-
-            codes[identifier] = dict(model.get_models())
-
-        self.global_resources.build_global_codes(codes)
-
-        self._model.fetched_resources = True

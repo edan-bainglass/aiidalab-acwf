@@ -75,12 +75,11 @@ class AppController:
 
     def load_wizard(
         self,
-        auto_setup: bool = True,
         log_widget: ipw.Output | None = None,
         duplicating: bool = False,
     ) -> None:
         """Load and initialize the wizard."""
-        self.wizard = Wizard(self._wizard_model, auto_setup, log_widget)
+        self.wizard = Wizard(self._wizard_model, log_widget)
 
         state = {"process_uuid": self._model.process_uuid}
         if self._model.process_uuid:
@@ -101,9 +100,7 @@ class AppController:
 
                     # Clear the URL
                     display(
-                        Javascript(
-                            "window.history.pushState(null, '', window.location.pathname);"
-                        ),
+                        Javascript("window.history.pushState(null, '', window.location.pathname);"),
                     )
                     break
 
@@ -171,10 +168,11 @@ class AppController:
             return
         app: Wizard = self._view.app_container.children[0]  # type: ignore
         payload = {
-            "step": min(app.current_step, 3),
+            "step": min(app.current_step, 4),
             "structure_state": app.structure_model.get_model_state(),
             "configuration_state": app.configure_model.get_model_state(),
-            "resources_state": app.submit_model.get_model_state(),
+            "resources_state": app.resources_model.get_model_state(),
+            "submission_state": app.submit_model.get_model_state(),
         }
         CURRENT_STATE_PATH.write_text(json.dumps(payload))
 
@@ -229,9 +227,7 @@ class AppController:
 class AppModel(tl.HasTraits):
     """An MVC model for the app."""
 
-    guide_category_options = tl.List(
-        ["No guides", *guide_manager.get_guide_categories()]
-    )
+    guide_category_options = tl.List(["No guides", *guide_manager.get_guide_categories()])
     selected_guide_category = tl.Unicode("No guides")
     guide_options = tl.List(tl.Unicode())
     selected_guide = tl.Unicode(None, allow_none=True)
@@ -278,10 +274,17 @@ class AppModel(tl.HasTraits):
         # END BACKWARDS COMPATIBILITY
 
         return {
-            "step": 4,  # completed all steps
+            "step": 5,  # completed all steps
             "structure_state": {"uuid": self.process.inputs.structure.uuid},
             "configuration_state": parameters,
-            "resources_state": codes,
+            "resources_state": {
+                "engine": parameters.get("engine", "quantum_espresso"),
+                **codes,
+            },
+            "submission_state": {
+                "process_label": self.process.label,
+                "process_description": self.process.description,
+            },
         }
 
 

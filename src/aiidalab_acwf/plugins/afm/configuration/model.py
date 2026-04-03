@@ -66,3 +66,25 @@ class AfmConfigurationSettingsModel(ConfigurationSettingsModel):
     # Conversion parameters Fz -> df
     f0_cantilever = tl.Float(30300.0)
     amplitude = tl.Float(1.0)
+
+    def get_model_state(self) -> dict:
+        return {
+            "mode": self.mode,
+            "pbc": self.pbc,
+            "grid_n": (self.grid_nx, self.grid_ny, self.grid_nz),
+            "grid_a": (self.grid_ax, self.grid_ay, self.grid_az),
+            "grid_b": (self.grid_bx, self.grid_by, self.grid_bz),
+            "grid_c": (self.grid_cx, self.grid_cy, self.grid_cz),
+            "probe_type": self.probe_type,
+            "charge": self.charge,
+            "r0_probe": (self.r0_probe_x, self.r0_probe_y, self.r0_probe_z),
+            "tip": self.tip,
+            "klat": self.klat,
+            "krad": self.krad,
+            "sigma": self.sigma,
+            "scan_step": (self.scan_step_x, self.scan_step_y, self.scan_step_z),
+            "scan_min": (self.scan_min_x, self.scan_min_y, self.scan_min_z),
+            "scan_max": (self.scan_max_x, self.scan_max_y, self.scan_max_z),
+            "f0_cantilever": self.f0_cantilever,
+            "amplitude": self.amplitude,
+        }

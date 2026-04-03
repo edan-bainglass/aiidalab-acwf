@@ -7,10 +7,7 @@ from aiida import orm
 from aiida.common import NotExistent
 
 from ..mvc import Model
-from ..widgets import (
-    PwCodeResourceSetupWidget,
-    QEAppComputationalResourcesWidget,
-)
+from ..widgets import CodeResourceSetupWidget
 
 
 class CodeModel(Model):
@@ -38,7 +35,7 @@ class CodeModel(Model):
         name="",
         description,
         default_calc_job_plugin,
-        code_widget_class=QEAppComputationalResourcesWidget,
+        code_widget_class=CodeResourceSetupWidget,
     ):
         self.name = name
         self.description = description
@@ -141,46 +138,6 @@ class CodeModel(Model):
     @staticmethod
     def _full_code_label(code):
         return f"{code.label}@{code.computer.label}"
-
-
-class PwCodeModel(CodeModel):
-    parallelization_override = tl.Bool(False)
-    npool = tl.Int(1)
-
-    def __init__(
-        self,
-        *,
-        name="",
-        description="pw.x",
-        default_calc_job_plugin="quantumespresso.pw",
-        code_widget_class=PwCodeResourceSetupWidget,
-    ):
-        super().__init__(
-            name=name,
-            description=description,
-            default_calc_job_plugin=default_calc_job_plugin,
-            code_widget_class=code_widget_class,
-        )
-
-    def get_model_state(self) -> dict:
-        parameters = super().get_model_state()
-        parameters["parallelization"] = (
-            {
-                "npool": self.npool,
-            }
-            if self.parallelization_override
-            else {}
-        )
-        return parameters
-
-    def set_model_state(self, parameters):
-        super().set_model_state(parameters)
-        if "parallelization" in parameters and "npool" in parameters["parallelization"]:
-            self.parallelization_override = True
-            self.npool = parameters["parallelization"].get("npool", 1)
-        else:
-            self.parallelization_override = False
-
 
 CodesDict = dict[str, CodeModel]
 PluginCodes = dict[str, CodesDict]

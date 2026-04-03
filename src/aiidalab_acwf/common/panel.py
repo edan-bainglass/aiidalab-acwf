@@ -14,10 +14,7 @@ from .code.model import CodeModel
 from .infobox import InAppGuide
 from .mixins import Confirmable, HasBlockers, HasModels, HasProcess
 from .mvc import Model
-from .widgets import (
-    PwCodeResourceSetupWidget,
-    QEAppComputationalResourcesWidget,
-)
+from .widgets import CodeResourceSetupWidget
 
 
 class PanelModel(Model, Confirmable, HasBlockers):
@@ -160,18 +157,26 @@ class ResourceSettingsModel(PanelModel, HasModels[CodeModel]):
 
     def add_model(self, identifier, model):
         super().add_model(identifier, model)
-        code_key = model.default_calc_job_plugin.split(".")[-1]
+        code_key = (
+            model.default_calc_job_plugin.split(".")[-1] if model.default_calc_job_plugin else None
+        )
         model.update(
             user_email=self.default_user_email,
-            default_code=self.default_codes.get(code_key, {}).get("code"),
+            default_code=(self.default_codes.get(code_key, {}).get("code") if code_key else None),
         )
 
     def refresh_codes(self):
         for _, code_model in self.get_models():
-            code_key = code_model.default_calc_job_plugin.split(".")[-1]
+            code_key = (
+                code_model.default_calc_job_plugin.split(".")[-1]
+                if code_model.default_calc_job_plugin
+                else None
+            )
             code_model.update(
                 user_email=self.default_user_email,
-                default_code=self.default_codes.get(code_key, {}).get("code"),
+                default_code=(
+                    self.default_codes.get(code_key, {}).get("code") if code_key else None
+                ),
                 refresh=True,
             )
 
@@ -206,14 +211,6 @@ class ResourceSettingsPanel(Panel[RSM]):
 
     def register_code_trait_callbacks(self, code_model: CodeModel):
         """Registers event handlers on code model traits."""
-        if code_model.default_calc_job_plugin == "quantumespresso.pw":
-            code_model.observe(
-                self._on_code_resource_change,
-                [
-                    "parallelization_override",
-                    "npool",
-                ],
-            )
         code_model.observe(
             self._on_code_resource_change,
             [
@@ -257,7 +254,7 @@ class ResourceSettingsPanel(Panel[RSM]):
     def _render_code_widget(
         self,
         code_model: CodeModel,
-        code_widget: QEAppComputationalResourcesWidget,
+        code_widget: CodeResourceSetupWidget,
     ):
         ipw.dlink(
             (code_model, "options"),
@@ -291,15 +288,6 @@ class ResourceSettingsPanel(Panel[RSM]):
             (code_model, "max_wallclock_seconds"),
             (code_widget.resource_detail.max_wallclock_seconds, "value"),
         )
-        if isinstance(code_widget, PwCodeResourceSetupWidget):
-            ipw.link(
-                (code_model, "parallelization_override"),
-                (code_widget.parallelization.override, "value"),
-            )
-            ipw.link(
-                (code_model, "npool"),
-                (code_widget.parallelization.npool, "value"),
-            )
         code_widget.code_selection.code_select_dropdown.observe(
             self._on_code_options_change,
             "options",
@@ -331,6 +319,8 @@ class PluginResourceSettingsModel(ResourceSettingsModel):
         if self.override:
             return
         for _, code_model in self.get_models():
+            if not code_model.default_calc_job_plugin:
+                continue
             model_key = code_model.default_calc_job_plugin.replace(".", "__")
             if model_key in self.global_codes:
                 code_resources: dict = self.global_codes[model_key]  # type: ignore
@@ -375,9 +365,7 @@ class PluginResourceSettingsPanel(ResourceSettingsPanel[PRSM]):
         if self.rendered:
             return
 
-        self.override_help = ipw.HTML(
-            "Click to override the resource settings for this plugin."
-        )
+        self.override_help = ipw.HTML("Click to override the resource settings for this plugin.")
         self.override = ipw.Checkbox(
             description="",
             indent=False,
@@ -417,7 +405,7 @@ class PluginResourceSettingsPanel(ResourceSettingsPanel[PRSM]):
     def _render_code_widget(
         self,
         code_model: CodeModel,
-        code_widget: QEAppComputationalResourcesWidget,
+        code_widget: CodeResourceSetupWidget,
     ):
         super()._render_code_widget(code_model, code_widget)
         self._link_override_to_widget_disable(code_model, code_widget)
@@ -445,17 +433,6 @@ class PluginResourceSettingsPanel(ResourceSettingsPanel[PRSM]):
             (code_widget.btn_setup_resource_detail, "disabled"),
             lambda override: not override,
         )
-        if isinstance(code_widget, PwCodeResourceSetupWidget):
-            ipw.dlink(
-                (code_model, "override"),
-                (code_widget.parallelization.override, "disabled"),
-                lambda override: not override,
-            )
-            ipw.dlink(
-                (code_model, "override"),
-                (code_widget.parallelization.npool, "disabled"),
-                lambda override: not override,
-            )
 
 
 class ResultsModel(PanelModel, HasProcess):
@@ -623,10 +600,7 @@ class ResultsPanel(Panel[RM]):
             self._load_results()
         else:
             children = [self.guide]
-            if (
-                self._model.identifier != "structure"
-                or "relax" in self._model.properties
-            ):
+            if self._model.identifier != "structure" or "relax" in self._model.properties:
                 children.append(self._get_controls_section())
             children.append(self.results_container)
             self.children = children

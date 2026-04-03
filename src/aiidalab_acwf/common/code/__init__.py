@@ -1,8 +1,7 @@
-from .model import CodeModel, CodesDict, PluginCodes, PwCodeModel
+from .model import CodeModel, CodesDict, PluginCodes
 
 __all__ = [
     "CodeModel",
     "CodesDict",
     "PluginCodes",
-    "PwCodeModel",
 ]

@@ -3,6 +3,7 @@ from __future__ import annotations
 import ipywidgets as ipw
 
 from aiidalab_acwf.app.configuration import ConfigurationStep, ConfigurationStepModel
+from aiidalab_acwf.app.resources import ResourcesStep, ResourcesStepModel
 from aiidalab_acwf.app.result import ResultsStep, ResultsStepModel
 from aiidalab_acwf.app.structure import StructureStep, StructureStepModel
 from aiidalab_acwf.app.submission import SubmissionStep, SubmissionStepModel
@@ -26,17 +27,12 @@ class Wizard(ipw.Accordion):
     TITLES = {
         "structure": "Select structure",
         "configure": "Configure workflow",
-        "submit": "Choose computational resources",
+        "resources": "Choose resources",
+        "submit": "Submit workflow",
         "results": "Status & results",
     }
 
-    def __init__(
-        self,
-        model: WizardModel,
-        auto_setup: bool = True,
-        log_widget: ipw.Output | None = None,
-        **kwargs,
-    ):
+    def __init__(self, model: WizardModel, log_widget: ipw.Output | None = None, **kwargs):
         super().__init__(**kwargs)
 
         self._model = model
@@ -46,10 +42,7 @@ class Wizard(ipw.Accordion):
         )
 
         self.structure_model = StructureStepModel(auto_advance=True)
-        self.structure_step = StructureStep(
-            model=self.structure_model,
-            auto_setup=auto_setup,
-        )
+        self.structure_step = StructureStep(model=self.structure_model)
         self._model.add_model("structure", self.structure_model)
 
         self.configure_model = ConfigurationStepModel(auto_advance=True)
@@ -60,14 +53,19 @@ class Wizard(ipw.Accordion):
             (self.configure_model, "previous_step_state"),
         )
 
-        self.submit_model = SubmissionStepModel(auto_advance=True)
-        self.submit_step = SubmissionStep(
-            model=self.submit_model,
-            auto_setup=auto_setup,
-        )
-        self._model.add_model("submit", self.submit_model)
+        self.resources_model = ResourcesStepModel(auto_advance=True)
+        self.resources_step = ResourcesStep(model=self.resources_model)
+        self._model.add_model("resources", self.resources_model)
         ipw.dlink(
             (self.configure_model, "state"),
+            (self.resources_model, "previous_step_state"),
+        )
+
+        self.submit_model = SubmissionStepModel(auto_advance=True)
+        self.submit_step = SubmissionStep(model=self.submit_model)
+        self._model.add_model("submit", self.submit_model)
+        ipw.dlink(
+            (self.resources_model, "state"),
             (self.submit_model, "previous_step_state"),
         )
 
@@ -85,6 +83,7 @@ class Wizard(ipw.Accordion):
         for step_model in (
             self.structure_model,
             self.configure_model,
+            self.resources_model,
             self.submit_model,
             self.results_model,
         ):
@@ -99,6 +98,10 @@ class Wizard(ipw.Accordion):
         )
         self.configure_model.observe(
             self._on_configuration_confirmation_change,
+            "confirmed",
+        )
+        self.resources_model.observe(
+            self._on_resources_confirmation_change,
             "confirmed",
         )
         self.submit_model.observe(
@@ -122,9 +125,7 @@ class Wizard(ipw.Accordion):
     @property
     def current_step(self) -> int:
         return sum(
-            1
-            for _, model in self._model.get_models()
-            if model.is_configured or model.is_successful
+            1 for _, model in self._model.get_models() if model.is_configured or model.is_successful
         )
 
     def render(self):
@@ -134,6 +135,7 @@ class Wizard(ipw.Accordion):
         self.children = [
             self.structure_step,
             self.configure_step,
+            self.resources_step,
             self.submit_step,
             self.results_step,
         ]
@@ -156,6 +158,10 @@ class Wizard(ipw.Accordion):
         self._model.update_configuration_model()
 
     def _on_configuration_confirmation_change(self, _):
+        self._model.auto_advance()
+        self._model.update_resources_model()
+
+    def _on_resources_confirmation_change(self, _):
         self._model.auto_advance()
         self._model.update_submission_model()
 

@@ -3,6 +3,7 @@ import typing as t
 import traitlets as tl
 
 from aiidalab_acwf.app.configuration import ConfigurationStepModel
+from aiidalab_acwf.app.resources import ResourcesStepModel
 from aiidalab_acwf.app.result import ResultsStepModel
 from aiidalab_acwf.app.structure import StructureStepModel
 from aiidalab_acwf.app.submission import SubmissionStepModel
@@ -21,6 +22,7 @@ class WizardModel(Model, HasModels[WizardStepModel]):
         structure_state = state.get("structure_state")
         configuration_state = state.get("configuration_state")
         resources_state = state.get("resources_state")
+        submission_state = state.get("submission_state")
         process_uuid = state.get("process_uuid")
 
         if step_index >= 0:
@@ -41,18 +43,30 @@ class WizardModel(Model, HasModels[WizardStepModel]):
 
                 if step_index >= 2:
                     configuration_model.confirm()
-                    submission_model = t.cast(
-                        SubmissionStepModel,
-                        self.get_model("submit"),
+                    resources_model = t.cast(
+                        ResourcesStepModel,
+                        self.get_model("resources"),
                     )
-                    submission_model.set_model_state(resources_state)
+                    resources_model.set_model_state(resources_state)
 
                     if step_index >= 3:
-                        submission_model.process_uuid = process_uuid
-                        submission_model.confirm()
-                        structure_model.lock()
-                        configuration_model.lock()
-                        submission_model.lock()
+                        resources_model.confirm()
+                        submission_model = t.cast(
+                            SubmissionStepModel,
+                            self.get_model("submit"),
+                        )
+                        submission_model.structure_uuid = structure_model.structure_uuid
+                        submission_model.input_parameters = configuration_model.get_model_state()
+                        submission_model.resources = resources_model.get_model_state()
+                        submission_model.set_model_state(submission_state or {})
+
+                        if step_index >= 4:
+                            submission_model.process_uuid = process_uuid
+                            submission_model.confirm()
+                            structure_model.lock()
+                            configuration_model.lock()
+                            resources_model.lock()
+                            submission_model.lock()
 
             self.loading = False
 
@@ -72,6 +86,26 @@ class WizardModel(Model, HasModels[WizardStepModel]):
         else:
             configuration_model.structure_uuid = None
 
+    def update_resources_model(self):
+        structure_model = t.cast(
+            StructureStepModel,
+            self.get_model("structure"),
+        )
+        configuration_model = t.cast(
+            ConfigurationStepModel,
+            self.get_model("configure"),
+        )
+        resources_model = t.cast(
+            ResourcesStepModel,
+            self.get_model("resources"),
+        )
+        if configuration_model.confirmed:
+            resources_model.structure_uuid = structure_model.structure_uuid
+            resources_model.input_parameters = configuration_model.get_model_state()
+        else:
+            resources_model.structure_uuid = None
+            resources_model.input_parameters = {}
+
     def update_submission_model(self):
         structure_model = t.cast(
             StructureStepModel,
@@ -81,16 +115,24 @@ class WizardModel(Model, HasModels[WizardStepModel]):
             ConfigurationStepModel,
             self.get_model("configure"),
         )
+        resources_model = t.cast(
+            ResourcesStepModel,
+            self.get_model("resources"),
+        )
         submission_model = t.cast(
             SubmissionStepModel,
             self.get_model("submit"),
         )
-        if configuration_model.confirmed:
+        if resources_model.confirmed:
             submission_model.structure_uuid = structure_model.structure_uuid
             submission_model.input_parameters = configuration_model.get_model_state()
+            submission_model.resources = resources_model.get_model_state()
+            submission_model.update_state()
         else:
             submission_model.structure_uuid = None
             submission_model.input_parameters = {}
+            submission_model.resources = {}
+            submission_model.update_state()
 
     def update_results_model(self):
         submission_model = t.cast(
@@ -107,7 +149,7 @@ class WizardModel(Model, HasModels[WizardStepModel]):
         )
 
     def lock_app(self):
-        for identifier in ("structure", "configure", "submit"):
+        for identifier in ("structure", "configure", "resources", "submit"):
             model = self.get_model(identifier)
             model.lock()
 

@@ -7,9 +7,19 @@ afm = {
         "panel": AfmConfigurationSettingsPanel,
     },
     "resources": {
-        "scf": None,
-        "pp": None,
-        "ppafm": None,
+        "engines": {
+            "quantum_espresso": "Quantum ESPRESSO",
+            "cp2k": "CP2K",
+        },
+        "codes": {
+            "quantum_espresso": {
+                "scf": "quantumespresso.pw",
+                "pp": "quantumespresso.pp",
+            },
+            "cp2k": {
+                "scf": "cp2k",
+            },
+        },
     },
     "workchain": workchain_and_builder,
 }
