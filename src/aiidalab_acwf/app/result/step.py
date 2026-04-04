@@ -82,9 +82,7 @@ class ResultsStep(DependentWizardStep[ResultsStepModel]):
             (self._model, "process_uuid"),
             (self.clean_scratch_button.layout, "display"),
             lambda _: (
-                "block"
-                if self._model.has_process and self._model.process.is_terminated
-                else "none"
+                "block" if self._model.has_process and self._model.process.is_terminated else "none"
             ),
         )
         self.clean_scratch_button.on_click(self._on_clean_scratch_button_click)
@@ -115,11 +113,7 @@ class ResultsStep(DependentWizardStep[ResultsStepModel]):
             "value",
         )
 
-        self.container = ipw.VBox(
-            children=[
-                self.status_panel,
-            ],
-        )
+        self.container = ipw.VBox()
 
         self.content.children = [
             InAppGuide(identifier="results-step"),
@@ -167,17 +161,19 @@ class ResultsStep(DependentWizardStep[ResultsStepModel]):
             ],
             log_widget=self.log_widget,
         )
-        ipw.dlink(
-            (self._model, "process_uuid"),
-            (self.process_monitor, "value"),
-        )
+        # ipw.dlink(
+        #     (self._model, "process_uuid"),
+        #     (self.process_monitor, "value"),
+        # )
 
     def _set_default_results_panel(self):
-        self.toggle_controls.value = (
-            "Results"
-            if self._model.has_process and self._model.process.is_finished_ok
-            else "Status"
-        )
+        if not self.rendered:
+            return
+        # self.toggle_controls.value = (
+        #     "Results"
+        #     if self._model.has_process and self._model.process.is_finished_ok
+        #     else "Status"
+        # )
 
     def _update_status(self):
         self._model.monitor_counter += 1

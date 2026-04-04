@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from aiida_common_workflows.workflows.relax.generator import CommonRelaxInputGenerator
+from aiida_common_workflows.workflows.pp import CommonPostProcessInputGenerator
+from aiida_common_workflows.workflows.relax import CommonRelaxInputGenerator
 
 from aiida import orm
 from aiida.common import AttributeDict
 from aiida.engine import ToContext, WorkChain, if_
 from aiida.plugins import DataFactory, WorkflowFactory
 from aiidalab_acwf.plugins.utils import get_entry_items
+from aiidalab_acwf.utils import shallow_copy_nested_dict
 
 XyData = DataFactory("core.array.xy")
 StructureData = DataFactory("core.structure")
@@ -49,6 +51,16 @@ class AcwfAppWorkChain(WorkChain):
                 "required": False,
                 "populate_defaults": False,
                 "help": "Inputs for the `CommonRelaxWorkChain`, if not specified at all, the relaxation step is skipped.",
+            },
+        )
+        spec.expose_inputs(
+            CommonPostProcessInputGenerator,
+            namespace="post_process",
+            exclude=("structure",),
+            namespace_options={
+                "required": False,
+                "populate_defaults": False,
+                "help": "Inputs for the `CommonPostProcessWorkChain`, if not specified at all, the post-processing step is skipped.",
             },
         )
 
@@ -104,37 +116,52 @@ class AcwfAppWorkChain(WorkChain):
     ):
         parameters = parameters or {}
         properties = parameters["properties"]
-        engine = parameters.get("engine", "quantum_espresso")
+        engine = parameters.pop("engine", "quantum_espresso")
         codes = parameters.pop("codes", {})
 
         for _, plugin_codes in codes.items():
-            for _, value in plugin_codes.items():
+            for _, value in plugin_codes["codes"].items():
                 if value["code"] is not None:
                     value["code"] = orm.load_code(value["code"])
 
-        # TODO handle pseudos
+        # TODO possibly handle pseudos (see comment in QE app workchain)
 
         builder = cls.get_builder()
         builder.structure = structure
+        builder.properties = orm.List(properties)
+        builder.engine = orm.Str(engine)
 
         if "relax" in properties:
-            relax_parameters = parameters.get("common", {})
-            RelaxWorkChain = WorkflowFactory(f"common_workflows.relax.{engine}")
-            input_generator = RelaxWorkChain.get_input_generator()
-            relax_builder = input_generator.get_builder(
-                structure=structure,
-                engines={
-                    "relax": {
-                        "code": codes.get(engine, {}).get("relax", {}).get("code"),
-                        "options": {},
-                    },
-                },
-                **relax_parameters,
-                **kwargs,
-            )
-            builder.relax = relax_builder
+            relax_code = next(iter(codes.values())).get("codes", {}).get("scf", {}).get("code")
+            relax_parameters = dict(parameters.get("common", {}))
+            relax_parameters["engines"] = {
+                "relax": {
+                    "code": relax_code,
+                    "options": {},
+                }
+            }
+            relax_parameters.update(kwargs)
+            builder.relax = relax_parameters
         else:
             builder.pop("relax", None)
+
+        if "pp" in codes:
+            pp_code = codes["pp"]["codes"]["pp"]["code"]
+            pass
+
+        for name, entry_point in plugin_entries.items():
+            if name in properties:
+                plugin_builder = entry_point["get_builder"](
+                    codes[name]["codes"],
+                    builder.structure,
+                    shallow_copy_nested_dict(parameters),
+                    **kwargs,
+                )
+                # some plugin's logic depend on whether a input exist or not, but not check if
+                # it is empty. Here we remove the empty namespace for safety.
+                setattr(builder, name, plugin_builder._inputs(prune=True))
+            else:
+                builder.pop(name, None)
 
         return builder
 
@@ -147,9 +174,7 @@ class AcwfAppWorkChain(WorkChain):
         return self.ctx.run_relax
 
     def run_relax(self):
-        inputs = AttributeDict(
-            self.exposed_inputs(CommonRelaxInputGenerator, namespace="relax")
-        )
+        inputs = AttributeDict(self.exposed_inputs(CommonRelaxInputGenerator, namespace="relax"))
         inputs.metadata.call_link_label = "relax"
         inputs.structure = self.ctx.current_structure
 
@@ -168,9 +193,7 @@ class AcwfAppWorkChain(WorkChain):
         workchain = self.ctx.workchain_relax
 
         if not workchain.is_finished_ok:
-            self.report(
-                f"CommonRelaxWorkChain failed with exit status {workchain.exit_status}"
-            )
+            self.report(f"CommonRelaxWorkChain failed with exit status {workchain.exit_status}")
             return self.exit_codes.ERROR_SUB_PROCESS_FAILED_RELAX
 
         if "relaxed_structure" in workchain.outputs:
@@ -188,9 +211,7 @@ class AcwfAppWorkChain(WorkChain):
                 continue
             self.report(f"Run workflow: {name}")
             plugin_workchain = entry_point["workchain"]
-            inputs = AttributeDict(
-                self.exposed_inputs(plugin_workchain, namespace=name)
-            )
+            inputs = AttributeDict(self.exposed_inputs(plugin_workchain, namespace=name))
             inputs.metadata.call_link_label = name
             if entry_point.get("update_inputs"):
                 entry_point["update_inputs"](inputs, self.ctx)
@@ -209,16 +230,10 @@ class AcwfAppWorkChain(WorkChain):
                 continue
             workchain = self.ctx[name]
             if not workchain.is_finished_ok:
-                self.report(
-                    f"{name} WorkChain failed with exit status {workchain.exit_status}"
-                )
+                self.report(f"{name} WorkChain failed with exit status {workchain.exit_status}")
                 return self.exit_codes.get(f"ERROR_SUB_PROCESS_FAILED_{name}")
             # Attach the output nodes directly as outputs of the workchain.
-            self.out_many(
-                self.exposed_outputs(
-                    workchain, entry_point["workchain"], namespace=name
-                )
-            )
+            self.out_many(self.exposed_outputs(workchain, entry_point["workchain"], namespace=name))
 
     def on_terminated(self):
         """Clean the working directories of all child calculations if `clean_workdir=True` in the inputs."""
@@ -277,9 +292,7 @@ def wrap_bare_dict_inputs(port_namespace, inputs):
 
         port = port_namespace[key]
         valid_types = (
-            port.valid_type
-            if isinstance(port.valid_type, (list, tuple))
-            else (port.valid_type,)
+            port.valid_type if isinstance(port.valid_type, (list, tuple)) else (port.valid_type,)
         )
 
         if isinstance(port, PortNamespace):

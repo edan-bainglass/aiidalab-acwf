@@ -112,7 +112,13 @@ class SubmissionStepModel(
         engine = resources.pop("engine", "quantum_espresso")
         parameters["engine"] = engine
         parameters["codes"] = resources
+        print(parameters)
+
         builder = self._create_builder(parameters)
+
+        print(builder)
+
+        return
 
         with self.hold_trait_notifications():
             process_node = submit(builder)
