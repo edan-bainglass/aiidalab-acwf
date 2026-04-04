@@ -16,16 +16,6 @@ class AfmWorkChain(WorkChain):
             valid_type=orm.Dict,
             help="The input parameters.",
         )
-        spec.input(
-            "options",
-            valid_type=orm.Dict,
-            help="The input options.",
-        )
-        spec.output(
-            "properties",
-            valid_type=orm.Dict,
-            help="The output properties.",
-        )
 
 
 def get_builder(codes, structure, parameters, **kwargs):
@@ -38,7 +28,7 @@ def update_inputs(builder, codes):
 
 workchain_and_builder = {
     "workchain": AfmWorkChain,
-    "exclude": ("structure", "relax"),
+    "exclude": ("structure"),
     "get_builder": get_builder,
     "update_inputs": update_inputs,
 }

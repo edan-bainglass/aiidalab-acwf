@@ -111,7 +111,7 @@ class SubmissionStepModel(
         resources = shallow_copy_nested_dict(self.resources)
         engine = resources.pop("engine", "quantum_espresso")
         parameters["engine"] = engine
-        parameters["codes"] = resources
+        parameters["resources"] = resources
         print(parameters)
 
         builder = self._create_builder(parameters)

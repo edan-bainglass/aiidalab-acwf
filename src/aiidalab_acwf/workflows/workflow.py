@@ -45,7 +45,7 @@ class AcwfAppWorkChain(WorkChain):
         )
         spec.expose_inputs(
             CommonRelaxInputGenerator,
-            namespace="relax",
+            namespace="scf",
             exclude=("structure",),
             namespace_options={
                 "required": False,
@@ -55,7 +55,7 @@ class AcwfAppWorkChain(WorkChain):
         )
         spec.expose_inputs(
             CommonPostProcessInputGenerator,
-            namespace="post_process",
+            namespace="pp",
             exclude=("structure",),
             namespace_options={
                 "required": False,
@@ -117,12 +117,12 @@ class AcwfAppWorkChain(WorkChain):
         parameters = parameters or {}
         properties = parameters["properties"]
         engine = parameters.pop("engine", "quantum_espresso")
-        codes = parameters.pop("codes", {})
+        all_resources = parameters.pop("resources", {})
 
-        for _, plugin_codes in codes.items():
-            for _, value in plugin_codes["codes"].items():
-                if value["code"] is not None:
-                    value["code"] = orm.load_code(value["code"])
+        for resources in all_resources.values():
+            for code in resources["codes"].values():
+                if code["code"] is not None:
+                    code["code"] = orm.load_code(code["code"])
 
         # TODO possibly handle pseudos (see comment in QE app workchain)
 
@@ -131,13 +131,22 @@ class AcwfAppWorkChain(WorkChain):
         builder.properties = orm.List(properties)
         builder.engine = orm.Str(engine)
 
-        if "relax" in properties:
-            relax_code = next(iter(codes.values())).get("codes", {}).get("scf", {}).get("code")
-            relax_parameters = dict(parameters.get("common", {}))
+        common_resources = all_resources["common"]
+
+        if "scf" in properties:
+            relax_code = common_resources["codes"]["scf"]
+            relax_parameters = parameters["common"]
             relax_parameters["engines"] = {
                 "relax": {
-                    "code": relax_code,
-                    "options": {},
+                    "code": relax_code["code"],
+                    "options": {
+                        "resources": {
+                            "num_machines": relax_code["nodes"],
+                            "tot_num_mpiprocs": relax_code["cpus"],
+                            "num_cores_per_mpiproc": relax_code["cpus_per_task"],
+                            "num_mpiprocs_per_machine": relax_code["ntasks_per_node"],
+                        }
+                    },
                 }
             }
             relax_parameters.update(kwargs)
@@ -145,21 +154,32 @@ class AcwfAppWorkChain(WorkChain):
         else:
             builder.pop("relax", None)
 
-        if "pp" in codes:
-            pp_code = codes["pp"]["codes"]["pp"]["code"]
-            pass
+        if "pp" in common_resources["codes"]:
+            pp_code = common_resources["codes"]["pp"]["code"]
+            pp_parameters = {}
+            pp_parameters["engines"] = {
+                "pp": {
+                    "code": pp_code,
+                    "options": {
+                        "resources": {
+                            "num_machines": pp_code["nodes"],
+                            "tot_num_mpiprocs": pp_code["cpus"],
+                            "num_cores_per_mpiproc": pp_code["cpus_per_task"],
+                            "num_mpiprocs_per_machine": pp_code["ntasks_per_node"],
+                        }
+                    },
+                }
+            }
 
         for name, entry_point in plugin_entries.items():
             if name in properties:
                 plugin_builder = entry_point["get_builder"](
-                    codes[name]["codes"],
+                    all_resources[name]["codes"],
                     builder.structure,
                     shallow_copy_nested_dict(parameters),
                     **kwargs,
                 )
-                # some plugin's logic depend on whether a input exist or not, but not check if
-                # it is empty. Here we remove the empty namespace for safety.
-                setattr(builder, name, plugin_builder._inputs(prune=True))
+                setattr(builder, name, plugin_builder)
             else:
                 builder.pop(name, None)
 

@@ -139,5 +139,6 @@ class CodeModel(Model):
     def _full_code_label(code):
         return f"{code.label}@{code.computer.label}"
 
+
 CodesDict = dict[str, CodeModel]
 PluginCodes = dict[str, CodesDict]
