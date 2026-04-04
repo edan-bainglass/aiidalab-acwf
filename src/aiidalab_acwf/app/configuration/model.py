@@ -13,6 +13,8 @@ from aiidalab_acwf.parameters import DEFAULT_PARAMETERS
 
 DEFAULT: dict = DEFAULT_PARAMETERS  # type: ignore
 
+NO_RELAXATION_OPTION = ("Structure as is", "none")
+
 
 class ConfigurationStepModel(
     ConfirmableDependentWizardStepModel,
@@ -21,10 +23,18 @@ class ConfigurationStepModel(
 ):
     identifier = "configuration"
 
-    workflow_options = tl.List(tl.Tuple(tl.Unicode(), tl.Unicode()))
-    workflow = tl.Unicode()
+    relax_type_help = tl.Unicode(
+        """
+        <div style="display: flex; margin: 4px 2px">
+            Loading help text
+            <i class="fa fa-spinner fa-spin fa-2x fa-fw"></i>
+        </div>
+    """
+    )
+    relax_type_options = tl.List(default_value=[NO_RELAXATION_OPTION])
+    relax_type = tl.Unicode(NO_RELAXATION_OPTION[-1], allow_none=True)
 
-    installed_properties_fetched = tl.Bool(False)
+    available_properties_fetched = tl.Bool(False)
 
     _dependencies = [
         "structure_uuid",
@@ -36,7 +46,21 @@ class ConfigurationStepModel(
             "common",
         }
 
+        self.relax_type_help_template = """
+            <div style="line-height: 140%; padding-top: 0px; padding-bottom: 5px">
+                You have {option_count} options:
+                <br>
+                (1) Structure as is: perform a self consistent calculation using
+                the structure provided as input.
+                <br>
+                (2) Atomic positions: perform a full relaxation of the internal
+                atomic coordinates.
+                {full_relaxation_option}
+            </div>
+        """
+
     def update(self):
+        self.update_relaxation_options()
         self.update_blockers()
 
     def get_model_state(self) -> dict:
@@ -45,10 +69,16 @@ class ConfigurationStepModel(
             for identifier, model in self.get_models()
             if model.include
         }
+        state["common"] |= {
+            "relax_type": self.relax_type,
+        }
         state["properties"] = self._get_properties()
         return state
 
     def set_model_state(self, state: dict):
+        common_parameters: dict = state.get("common", {})
+        relax_type = common_parameters.get("relax_type", self.relax_type)
+        self.relax_type = self._get_valid_relax_type(relax_type, self.relax_type_options)
         properties = set(state.get("properties", []))
         for identifier, model in self.get_models():
             model.include = identifier in self._default_models | properties
@@ -66,9 +96,55 @@ class ConfigurationStepModel(
     def reset(self):
         self.confirmed = False
         with self.hold_trait_notifications():
+            self.relax_type_help = self._get_default("relax_type_help")
+            self.relax_type_options = self._get_default("relax_type_options")
+            self.relax_type = self._get_default_relax_type()
             for identifier, model in self.get_models():
                 if identifier not in self._default_models:
                     model.include = False
+
+    def update_relaxation_options(self):
+        if self.has_pbc:
+            relax_type_help = self.relax_type_help_template.format(
+                option_count="three",
+                full_relaxation_option=(
+                    """
+                    <br>
+                    (3) Full geometry: perform a full relaxation of the internal atomic
+                    coordinates and the cell parameters.
+                    """
+                ),
+            )
+            relax_type_options = [
+                NO_RELAXATION_OPTION,
+                ("Atomic positions", "positions"),
+                ("Full geometry", "positions_cell"),
+            ]
+        else:
+            relax_type_help = self.relax_type_help_template.format(
+                option_count="two",
+                full_relaxation_option="",
+            )
+            relax_type_options = [
+                NO_RELAXATION_OPTION,
+                ("Atomic positions", "positions"),
+            ]
+
+        relax_type = self._get_valid_relax_type(self.relax_type, relax_type_options)
+
+        self._defaults = {
+            **self._defaults,
+            "relax_type_help": relax_type_help,
+            "relax_type_options": relax_type_options,
+            "relax_type": relax_type,
+        }
+
+        self.relax_type_help = self._get_default("relax_type_help")
+        self.relax_type_options = self._get_default("relax_type_options")
+        self.relax_type = self._get_valid_relax_type(
+            relax_type,
+            self.relax_type_options,
+        )
 
     def _link_model(self, model: PanelModel):
         tl.link(
@@ -84,10 +160,25 @@ class ConfigurationStepModel(
                 continue
             if model.include:
                 properties.append(identifier)
-        relax_type = self.get_model("common").relax_type
-        if RelaxType(relax_type) is not RelaxType.NONE or not properties:
+        if RelaxType(self.relax_type) is not RelaxType.NONE or not properties:
             properties.append("relax")
         return properties
+
+    def _get_default_relax_type(self):
+        options = self._get_default("relax_type_options")
+        relax_type = self._get_default("relax_type")
+        return relax_type if relax_type in [option[1] for option in options] else options[-1][-1]
+
+    def _get_valid_relax_type(self, relax_type: str, options: list[tuple[str, str]]):
+        available = [option[1] for option in options]
+        if relax_type in available:
+            return relax_type
+
+        default = DEFAULT["common"]["relax_type"]
+        if default in available:
+            return default
+
+        return options[-1][-1]
 
     def _check_blockers(self):
         if not self.has_structure:

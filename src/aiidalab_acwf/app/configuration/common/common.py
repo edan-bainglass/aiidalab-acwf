@@ -23,18 +23,6 @@ class CommonConfigurationSettingsPanel(
         if self.rendered:
             return
 
-        self.relax_type = ipw.ToggleButtons()
-        ipw.dlink(
-            (self._model, "relax_type_options"),
-            (self.relax_type, "options"),
-        )
-        ipw.link(
-            (self._model, "relax_type"),
-            (self.relax_type, "value"),
-        )
-        relax_type_label = ipw.Label("Relaxation type:")
-        relax_type_label.add_class("settings-label")
-
         self.electronic_type = ipw.ToggleButtons(style={"description_width": "initial"})
         ipw.dlink(
             (self._model, "electronic_type_options"),
@@ -95,13 +83,6 @@ class CommonConfigurationSettingsPanel(
 
         self.children = [
             InAppGuide(identifier="common-settings"),
-            ipw.HBox(
-                children=[
-                    relax_type_label,
-                    self.relax_type,
-                ],
-                layout=ipw.Layout(align_items="baseline"),
-            ),
             ipw.HBox(
                 children=[
                     electronic_type_label,

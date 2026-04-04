@@ -1,17 +1,25 @@
-from .configuration import AfmConfigurationSettingsModel, AfmConfigurationSettingsPanel
+from .configuration import (
+    AfmConfigurationSettingsModel,
+    AfmConfigurationSettingsPanel,
+    AfmPluginOutline,
+)
+from .resources import AfmResourceSettingsModel, AfmResourceSettingsPanel
 from .workflow import workchain_and_builder
 
 afm = {
+    "outline": AfmPluginOutline,
     "configuration": {
         "model": AfmConfigurationSettingsModel,
         "panel": AfmConfigurationSettingsPanel,
     },
     "resources": {
+        "model": AfmResourceSettingsModel,
+        "panel": AfmResourceSettingsPanel,
         "engines": {
             "quantum_espresso": "Quantum ESPRESSO",
             "cp2k": "CP2K",
         },
-        "codes": {
+        "common_codes": {
             "quantum_espresso": {
                 "scf": "quantumespresso.pw",
                 "pp": "quantumespresso.pp",
@@ -19,6 +27,13 @@ afm = {
             "cp2k": {
                 "scf": "cp2k",
             },
+        },
+        "plugin_codes": {
+            "quantum_espresso": {},
+            "cp2k": {},
+        },
+        "pp_notes": {
+            "cp2k": "Post-processing is handled in the selected CP2K SCF code configuration.",
         },
     },
     "workchain": workchain_and_builder,

@@ -1,8 +1,10 @@
 import traitlets as tl
 
-from aiidalab_acwf.common.panel import (
-    ConfigurationSettingsModel,
-)
+from aiidalab_acwf.common.panel import ConfigurationSettingsModel, PluginOutline
+
+
+class AfmPluginOutline(PluginOutline):
+    title = "Atomic force microscopy (AFM)"
 
 
 class AfmConfigurationSettingsModel(ConfigurationSettingsModel):
@@ -88,3 +90,55 @@ class AfmConfigurationSettingsModel(ConfigurationSettingsModel):
             "f0_cantilever": self.f0_cantilever,
             "amplitude": self.amplitude,
         }
+
+    def set_model_state(self, state: dict):
+        self.mode = state.get("mode", self.mode)
+        self.pbc = state.get("pbc", self.pbc)
+        (
+            self.grid_nx,
+            self.grid_ny,
+            self.grid_nz,
+        ) = state.get("grid_n", (self.grid_nx, self.grid_ny, self.grid_nz))
+        (
+            self.grid_ax,
+            self.grid_ay,
+            self.grid_az,
+        ) = state.get("grid_a", (self.grid_ax, self.grid_ay, self.grid_az))
+        (
+            self.grid_bx,
+            self.grid_by,
+            self.grid_bz,
+        ) = state.get("grid_b", (self.grid_bx, self.grid_by, self.grid_bz))
+        (
+            self.grid_cx,
+            self.grid_cy,
+            self.grid_cz,
+        ) = state.get("grid_c", (self.grid_cx, self.grid_cy, self.grid_cz))
+        self.probe_type = state.get("probe_type", self.probe_type)
+        self.charge = state.get("charge", self.charge)
+        (
+            self.r0_probe_x,
+            self.r0_probe_y,
+            self.r0_probe_z,
+        ) = state.get("r0_probe", (self.r0_probe_x, self.r0_probe_y, self.r0_probe_z))
+        self.tip = state.get("tip", self.tip)
+        self.klat = state.get("klat", self.klat)
+        self.krad = state.get("krad", self.krad)
+        self.sigma = state.get("sigma", self.sigma)
+        (
+            self.scan_step_x,
+            self.scan_step_y,
+            self.scan_step_z,
+        ) = state.get("scan_step", (self.scan_step_x, self.scan_step_y, self.scan_step_z))
+        (
+            self.scan_min_x,
+            self.scan_min_y,
+            self.scan_min_z,
+        ) = state.get("scan_min", (self.scan_min_x, self.scan_min_y, self.scan_min_z))
+        (
+            self.scan_max_x,
+            self.scan_max_y,
+            self.scan_max_z,
+        ) = state.get("scan_max", (self.scan_max_x, self.scan_max_y, self.scan_max_z))
+        self.f0_cantilever = state.get("f0_cantilever", self.f0_cantilever)
+        self.amplitude = state.get("amplitude", self.amplitude)

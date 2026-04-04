@@ -195,6 +195,15 @@ class ResourceSettingsModel(PanelModel, HasModels[CodeModel]):
             if identifier in code_data:
                 code_model.set_model_state(code_data[identifier])
 
+    def set_engine_resources(self, engine_resources: dict[str, str]):
+        for code_name, code_model in self.get_models():
+            calc_job_plugin = engine_resources.get(code_name)
+            code_model.default_calc_job_plugin = calc_job_plugin
+            if calc_job_plugin:
+                code_model.activate()
+            else:
+                code_model.deactivate()
+
     def _check_blockers(self):
         return []
 
@@ -301,7 +310,7 @@ class PluginResourceSettingsModel(ResourceSettingsModel):
     """Base model for plugin resource setting models."""
 
     dependencies = [
-        "global.global_codes",
+        "common.global_codes",
     ]
 
     override = tl.Bool(False)
@@ -401,6 +410,11 @@ class PluginResourceSettingsPanel(ResourceSettingsPanel[PRSM]):
 
     def _on_override_change(self, _):
         self._model.update()
+
+    def _on_code_options_change(self, change: dict):
+        widget: ipw.Dropdown = change["owner"]
+        # Keep selectors disabled unless plugin override is explicitly enabled.
+        widget.disabled = (not self._model.override) or (not widget.options)
 
     def _render_code_widget(
         self,
