@@ -136,26 +136,23 @@ class AcwfAppWorkChain(WorkChain):
 
         common_resources = all_resources["common"]
 
-        if "relax" in properties:
-            relax_code = common_resources["codes"]["scf"]
-            relax_parameters = parameters["common"]
-            relax_parameters["engines"] = {
-                "relax": {
-                    "code": relax_code["code"],
-                    "options": {
-                        "resources": {
-                            "num_machines": relax_code["nodes"],
-                            "tot_num_mpiprocs": relax_code["cpus"],
-                            "num_cores_per_mpiproc": relax_code["cpus_per_task"],
-                            "num_mpiprocs_per_machine": relax_code["ntasks_per_node"],
-                        }
-                    },
-                }
+        scf_code = common_resources["codes"]["scf"]
+        scf_parameters = parameters["common"]
+        scf_parameters["engines"] = {
+            "relax": {
+                "code": scf_code["code"],
+                "options": {
+                    "resources": {
+                        "num_machines": scf_code["nodes"],
+                        "tot_num_mpiprocs": scf_code["cpus"],
+                        "num_cores_per_mpiproc": scf_code["cpus_per_task"],
+                        "num_mpiprocs_per_machine": scf_code["ntasks_per_node"],
+                    }
+                },
             }
-            relax_parameters.update(kwargs)
-            builder.scf = relax_parameters
-        else:
-            builder.pop("scf", None)
+        }
+        scf_parameters.update(kwargs)
+        builder.scf = scf_parameters
 
         if "pp" in common_resources["codes"]:
             pp_code = common_resources["codes"]["pp"]
@@ -195,7 +192,7 @@ class AcwfAppWorkChain(WorkChain):
 
     def setup(self):
         self.ctx.current_structure = self.inputs.structure
-        self.ctx.run_relax = "relax" in self.inputs.properties
+        self.ctx.run_relax = "scf" in self.inputs
 
     def should_run_relax(self):
         """Check if the geometry of the input structure should be optimized."""

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import traitlets as tl
-from aiida_common_workflows.common.types import RelaxType
 
 from aiidalab_acwf.common.mixins import (
     HasInputStructure,
@@ -160,8 +159,6 @@ class ConfigurationStepModel(
                 continue
             if model.include:
                 properties.append(identifier)
-        if RelaxType(self.relax_type) is not RelaxType.NONE or not properties:
-            properties.append("relax")
         return properties
 
     def _get_default_relax_type(self):

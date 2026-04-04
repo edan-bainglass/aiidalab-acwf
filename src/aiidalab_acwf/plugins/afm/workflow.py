@@ -120,10 +120,7 @@ def get_builder(codes, structure, parameters, **kwargs):
     mode = afm_parameters.get("mode", "empirical")
     case = _translate_case(mode)
 
-    relax = (
-        "relax" in parameters.get("properties", [])
-        and common_parameters.get("relax_type", "none") != "none"
-    )
+    relax = common_parameters.get("relax_type", "none") != "none"
 
     scf_code = codes.get("scf", {})
     pp_code = codes.get("pp", {})

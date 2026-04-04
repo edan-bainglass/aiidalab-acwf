@@ -250,7 +250,7 @@ class ResourcesStep(ConfirmableDependentWizardStep[ResourcesStepModel]):
         active_plugins = [
             prop
             for prop in self._model.input_parameters.get("properties", [])
-            if prop != "relax" and prop in self._plugin_engine_options
+            if prop in self._plugin_engine_options
         ]
         source_plugins = active_plugins or list(self._plugin_engine_options.keys())
 
@@ -306,7 +306,7 @@ class ResourcesStep(ConfirmableDependentWizardStep[ResourcesStepModel]):
         active_plugins = [
             prop
             for prop in self._model.input_parameters.get("properties", [])
-            if prop != "relax" and prop in self._plugin_common_resources
+            if prop in self._plugin_common_resources
         ]
         source_plugins = active_plugins or list(self._plugin_common_resources.keys())
 
@@ -322,7 +322,7 @@ class ResourcesStep(ConfirmableDependentWizardStep[ResourcesStepModel]):
         active_plugins = [
             prop
             for prop in self._model.input_parameters.get("properties", [])
-            if prop != "relax" and prop in self._plugin_pp_notes
+            if prop in self._plugin_pp_notes
         ]
         source_plugins = active_plugins or list(self._plugin_pp_notes.keys())
         for identifier in source_plugins:
