@@ -112,8 +112,6 @@ class SubmissionStepModel(
         engine = resources.pop("engine", "quantum_espresso")
         parameters["engine"] = engine
         parameters["resources"] = resources
-        print(parameters)
-
         builder = self._create_builder(parameters)
 
         print(builder)

@@ -56,7 +56,7 @@ class AcwfAppWorkChain(WorkChain):
         spec.expose_inputs(
             CommonPostProcessInputGenerator,
             namespace="pp",
-            exclude=("structure",),
+            exclude=("parent_folder", "quantity"),
             namespace_options={
                 "required": False,
                 "populate_defaults": False,
@@ -67,10 +67,13 @@ class AcwfAppWorkChain(WorkChain):
         i = 0
         for name, entry_point in plugin_entries.items():
             plugin_workchain = entry_point["workchain"]
+            requested_exclude = entry_point.get("exclude", ())
+            available_inputs = set(plugin_workchain.spec().inputs)
+            exclude = tuple(key for key in requested_exclude if key in available_inputs)
             spec.expose_inputs(
                 plugin_workchain,
                 namespace=name,
-                exclude=entry_point.get("exclude"),
+                exclude=exclude,
                 namespace_options={
                     "required": False,
                     "populate_defaults": False,
@@ -133,7 +136,7 @@ class AcwfAppWorkChain(WorkChain):
 
         common_resources = all_resources["common"]
 
-        if "scf" in properties:
+        if "relax" in properties:
             relax_code = common_resources["codes"]["scf"]
             relax_parameters = parameters["common"]
             relax_parameters["engines"] = {
@@ -150,26 +153,30 @@ class AcwfAppWorkChain(WorkChain):
                 }
             }
             relax_parameters.update(kwargs)
-            builder.relax = relax_parameters
+            builder.scf = relax_parameters
         else:
-            builder.pop("relax", None)
+            builder.pop("scf", None)
 
         if "pp" in common_resources["codes"]:
-            pp_code = common_resources["codes"]["pp"]["code"]
-            pp_parameters = {}
-            pp_parameters["engines"] = {
-                "pp": {
-                    "code": pp_code,
-                    "options": {
-                        "resources": {
-                            "num_machines": pp_code["nodes"],
-                            "tot_num_mpiprocs": pp_code["cpus"],
-                            "num_cores_per_mpiproc": pp_code["cpus_per_task"],
-                            "num_mpiprocs_per_machine": pp_code["ntasks_per_node"],
-                        }
-                    },
+            pp_code = common_resources["codes"]["pp"]
+            pp_parameters = {
+                "engines": {
+                    "pp": {
+                        "code": pp_code["code"],
+                        "options": {
+                            "resources": {
+                                "num_machines": pp_code["nodes"],
+                                "tot_num_mpiprocs": pp_code["cpus"],
+                                "num_cores_per_mpiproc": pp_code["cpus_per_task"],
+                                "num_mpiprocs_per_machine": pp_code["ntasks_per_node"],
+                            }
+                        },
+                    }
                 }
             }
+            builder.pp = pp_parameters
+        else:
+            builder.pop("pp", None)
 
         for name, entry_point in plugin_entries.items():
             if name in properties:
@@ -177,6 +184,7 @@ class AcwfAppWorkChain(WorkChain):
                     all_resources[name]["codes"],
                     builder.structure,
                     shallow_copy_nested_dict(parameters),
+                    engine=engine,
                     **kwargs,
                 )
                 setattr(builder, name, plugin_builder)
@@ -194,8 +202,8 @@ class AcwfAppWorkChain(WorkChain):
         return self.ctx.run_relax
 
     def run_relax(self):
-        inputs = AttributeDict(self.exposed_inputs(CommonRelaxInputGenerator, namespace="relax"))
-        inputs.metadata.call_link_label = "relax"
+        inputs = AttributeDict(self.exposed_inputs(CommonRelaxInputGenerator, namespace="scf"))
+        inputs.metadata.call_link_label = "scf"
         inputs.structure = self.ctx.current_structure
 
         engine = self.inputs.engine.value
