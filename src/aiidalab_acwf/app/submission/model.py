@@ -110,35 +110,18 @@ class SubmissionStepModel(
         parameters = shallow_copy_nested_dict(self.input_parameters)
         resources = shallow_copy_nested_dict(self.resources)
         engine = resources.pop("engine", "quantum_espresso")
-        parameters["engine"] = engine
-        parameters["resources"] = resources
-        builder = self._create_builder(parameters)
-
-        print(builder)
-
-        return
+        builder = AcwfAppWorkChain.get_builder(self.input_structure, parameters, resources, engine)
 
         with self.hold_trait_notifications():
             process_node = submit(builder)
-
             process_node.label = self.process_label
             process_node.description = self.process_description
-            process_node.base.extras.set("ui_parameters", serialize(parameters))
-            process_node.base.extras.set("common", parameters["common"])  # type: ignore
-            process_node.base.extras.set(
-                "structure",
-                self.input_structure.get_formula(),
-            )
+            process_node.base.extras.set("parameters", serialize(parameters))
+            process_node.base.extras.set("resources", serialize({"engine": engine, **resources}))
+            process_node.base.extras.set("structure", self.input_structure.get_formula())
             self.process_uuid = process_node.uuid
-
             pk = process_node.pk
             display(Javascript(f"window.history.pushState(null, '', '?pk={pk}');"))
-
-    def _create_builder(self, parameters):
-        return AcwfAppWorkChain.get_builder_from_protocol(
-            structure=self.input_structure,
-            parameters=shallow_copy_nested_dict(parameters),
-        )
 
     def _check_blockers(self):
         if not self.has_structure:

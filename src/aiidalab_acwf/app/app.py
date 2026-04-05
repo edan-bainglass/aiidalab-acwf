@@ -258,29 +258,18 @@ class AppModel(tl.HasTraits):
     def get_state_from_process(self) -> dict:
         if not self.process_uuid:
             return {}
-        parameters: dict = self.process.base.extras.get("ui_parameters", {})
+        parameters: dict = self.process.base.extras.get("parameters", {})
         if parameters and isinstance(parameters, str):
             parameters = deserialize_unsafe(parameters)
-        codes = parameters.pop("codes", {})
-
-        # BACKWARDS COMPATIBILITY
-        # We used to store the codes under "resources"
-        if "resources" in parameters:
-            resources = parameters["resources"]
-            codes |= {key: {"code": value} for key, value in codes.items()}
-            codes["pw"]["nodes"] = resources["num_machines"]
-            codes["pw"]["cpus"] = resources["num_mpiprocs_per_machine"]
-            codes["pw"]["parallelization"] = {"npool": resources["npools"]}
-        # END BACKWARDS COMPATIBILITY
+        resources: dict = self.process.base.extras.get("resources", {})
+        if resources and isinstance(resources, str):
+            resources = deserialize_unsafe(resources)
 
         return {
             "step": 5,  # completed all steps
             "structure_state": {"uuid": self.process.inputs.structure.uuid},
             "configuration_state": parameters,
-            "resources_state": {
-                "engine": parameters.get("engine", "quantum_espresso"),
-                **codes,
-            },
+            "resources_state": resources,
             "submission_state": {
                 "process_label": self.process.label,
                 "process_description": self.process.description,

@@ -111,16 +111,15 @@ class AcwfAppWorkChain(WorkChain):
         spec.output("structure", valid_type=StructureData, required=False)
 
     @classmethod
-    def get_builder_from_protocol(
+    def get_builder(
         cls,
         structure,
-        parameters=None,
+        parameters: dict,
+        all_resources: dict[str, dict[str, dict[str, dict]]],
+        engine: str,
         **kwargs,
     ):
-        parameters = parameters or {}
-        properties = parameters["properties"]
-        engine = parameters.pop("engine", "quantum_espresso")
-        all_resources = parameters.pop("resources", {})
+        properties: list = parameters["properties"]
 
         for resources in all_resources.values():
             for code in resources["codes"].values():
@@ -129,7 +128,7 @@ class AcwfAppWorkChain(WorkChain):
 
         # TODO possibly handle pseudos (see comment in QE app workchain)
 
-        builder = cls.get_builder()
+        builder = super().get_builder()
         builder.structure = structure
         builder.properties = orm.List(properties)
         builder.engine = orm.Str(engine)
