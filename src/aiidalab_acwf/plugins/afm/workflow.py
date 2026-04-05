@@ -6,6 +6,59 @@ from aiida_workgraph.engine.workgraph import WorkGraphEngine
 from aiida.engine import ToContext, WorkChain
 
 
+class AfmWorkChain(WorkChain):
+    @classmethod
+    def define(cls, spec):
+        super().define(spec)
+        spec.input_namespace("workgraph", dynamic=True)
+        spec.outline(
+            cls.run_workgraph,
+            cls.results,
+        )
+        spec.output_namespace("results", dynamic=True)
+
+    def run_workgraph(self):
+        process = self.submit(WorkGraphEngine, **self.inputs.workgraph)
+        return ToContext(workgraph_process=process)
+
+    def results(self):
+        for name, output in self.ctx.workgraph_process.outputs.items():
+            self.out(f"results.{name}", output)
+
+
+def get_builder(structure, parameters, codes, **kwargs):
+    """Return the builder for the AFM workchain wrapper."""
+
+    common_parameters = parameters.get("common", {})
+    afm_parameters = parameters.get("afm", {})
+
+    mode = afm_parameters.get("mode", "empirical")
+    case = _translate_case(mode)
+
+    scf_code = codes.get("scf", {})
+    pp_code = codes.get("pp", {})
+
+    wg = AfmWorkflow.build(
+        engine=parameters.get("engine", "quantum_espresso"),
+        case=case,
+        structure=structure,
+        afm_params=_translate_afm_params(afm_parameters),
+        relax=common_parameters.get("relax_type", "none") != "none",
+        dft_params=_translate_dft_params(common_parameters, scf_code),
+        pp_params=_translate_pp_params(pp_code) if pp_code.get("code") is not None else None,
+        tip=kwargs.get("tip"),
+    )
+
+    builder = AfmWorkChain.get_builder()
+    builder.workgraph = wg.to_dict() if hasattr(wg, "to_dict") else dict(wg)
+    return builder
+
+
+def update_inputs(_builder, _codes):
+    """Update the inputs of the AFM workchain builder."""
+    return
+
+
 def _options_from_code_settings(code_settings: dict) -> dict:
     return {
         "resources": {
@@ -89,61 +142,6 @@ def _translate_case(mode: str) -> str:
     if mode == "hartree":
         return AfmCase.HARTREE.name
     return AfmCase.EMPIRICAL.name
-
-
-class AfmWorkChain(WorkChain):
-    @classmethod
-    def define(cls, spec):
-        super().define(spec)
-        spec.input_namespace("workgraph", dynamic=True)
-        spec.outline(
-            cls.run_workgraph,
-            cls.results,
-        )
-        spec.output_namespace("results", dynamic=True)
-
-    def run_workgraph(self):
-        process = self.submit(WorkGraphEngine, **self.inputs.workgraph)
-        return ToContext(workgraph_process=process)
-
-    def results(self):
-        for name, output in self.ctx.workgraph_process.outputs.items():
-            self.out(f"results.{name}", output)
-
-
-def get_builder(codes, structure, parameters, **kwargs):
-    """Return the builder for the AFM workchain wrapper."""
-
-    common_parameters = parameters.get("common", {})
-    afm_parameters = parameters.get("afm", {})
-
-    mode = afm_parameters.get("mode", "empirical")
-    case = _translate_case(mode)
-
-    relax = common_parameters.get("relax_type", "none") != "none"
-
-    scf_code = codes.get("scf", {})
-    pp_code = codes.get("pp", {})
-
-    wg = AfmWorkflow.build(
-        engine=parameters.get("engine", "quantum_espresso"),
-        case=case,
-        structure=structure,
-        afm_params=_translate_afm_params(afm_parameters),
-        relax=relax,
-        dft_params=_translate_dft_params(common_parameters, scf_code),
-        pp_params=_translate_pp_params(pp_code) if pp_code.get("code") is not None else None,
-        tip=kwargs.get("tip"),
-    )
-
-    builder = AfmWorkChain.get_builder()
-    builder.workgraph = wg.to_dict() if hasattr(wg, "to_dict") else dict(wg)
-    return builder
-
-
-def update_inputs(_builder, _codes):
-    """Update the inputs of the AFM workchain builder."""
-    return
 
 
 workchain_and_builder = {

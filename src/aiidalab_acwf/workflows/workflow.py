@@ -50,7 +50,7 @@ class AcwfAppWorkChain(WorkChain):
             namespace_options={
                 "required": False,
                 "populate_defaults": False,
-                "help": "Inputs for the `CommonRelaxWorkChain`, if not specified at all, the relaxation step is skipped.",
+                "help": "Inputs for the `CommonRelaxWorkChain` used for SCF calculations, if not specified at all, SCF step is skipped.",
             },
         )
         spec.expose_inputs(
@@ -94,18 +94,22 @@ class AcwfAppWorkChain(WorkChain):
 
         spec.outline(
             cls.setup,
-            if_(cls.should_run_relax)(
-                cls.run_relax,
-                cls.inspect_relax,
+            # In the current implementation, we only run the SCF step if no
+            # plugins are selected, as a fallback. Otherwise, we defer to the
+            # plugins to run their own SCF calculations.
+            # TODO share the SCF calculation if possible
+            if_(cls.should_run_scf)(
+                cls.run_scf,
+                cls.inspect_scf,
             ),
-            cls.run_plugin,
-            cls.inspect_plugin,
+            cls.run_plugins,
+            cls.inspect_plugins,
         )
 
         spec.exit_code(
             401,
-            "ERROR_SUB_PROCESS_FAILED_RELAX",
-            message="The CommonRelaxWorkChain sub process failed",
+            "ERROR_SUB_PROCESS_FAILED_SCF",
+            message="The SCF calculation failed",
         )
 
         spec.output("structure", valid_type=StructureData, required=False)
@@ -119,14 +123,14 @@ class AcwfAppWorkChain(WorkChain):
         engine: str,
         **kwargs,
     ):
-        properties: list = parameters["properties"]
-
         for resources in all_resources.values():
             for code in resources["codes"].values():
                 if code["code"] is not None:
                     code["code"] = orm.load_code(code["code"])
 
         # TODO possibly handle pseudos (see comment in QE app workchain)
+
+        properties = parameters["properties"]
 
         builder = super().get_builder()
         builder.structure = structure
@@ -135,23 +139,26 @@ class AcwfAppWorkChain(WorkChain):
 
         common_resources = all_resources["common"]
 
-        scf_code = common_resources["codes"]["scf"]
-        scf_parameters = parameters["common"]
-        scf_parameters["engines"] = {
-            "relax": {
-                "code": scf_code["code"],
-                "options": {
-                    "resources": {
-                        "num_machines": scf_code["nodes"],
-                        "tot_num_mpiprocs": scf_code["cpus"],
-                        "num_cores_per_mpiproc": scf_code["cpus_per_task"],
-                        "num_mpiprocs_per_machine": scf_code["ntasks_per_node"],
-                    }
-                },
+        if not properties:
+            scf_code = common_resources["codes"]["scf"]
+            scf_parameters = parameters["common"]
+            scf_parameters["engines"] = {
+                "relax": {
+                    "code": scf_code["code"],
+                    "options": {
+                        "resources": {
+                            "num_machines": scf_code["nodes"],
+                            "tot_num_mpiprocs": scf_code["cpus"],
+                            "num_cores_per_mpiproc": scf_code["cpus_per_task"],
+                            "num_mpiprocs_per_machine": scf_code["ntasks_per_node"],
+                        }
+                    },
+                }
             }
-        }
-        scf_parameters.update(kwargs)
-        builder.scf = scf_parameters
+            scf_parameters.update(kwargs)
+            builder.scf = scf_parameters
+        else:
+            builder.pop("scf", None)
 
         if "pp" in common_resources["codes"]:
             pp_code = common_resources["codes"]["pp"]
@@ -177,9 +184,9 @@ class AcwfAppWorkChain(WorkChain):
         for name, entry_point in plugin_entries.items():
             if name in properties:
                 plugin_builder = entry_point["get_builder"](
-                    all_resources[name]["codes"],
                     builder.structure,
                     shallow_copy_nested_dict(parameters),
+                    all_resources[name]["codes"],
                     engine=engine,
                     **kwargs,
                 )
@@ -191,13 +198,13 @@ class AcwfAppWorkChain(WorkChain):
 
     def setup(self):
         self.ctx.current_structure = self.inputs.structure
-        self.ctx.run_relax = "scf" in self.inputs
+        self.ctx.run_scf = "scf" in self.inputs
 
-    def should_run_relax(self):
-        """Check if the geometry of the input structure should be optimized."""
-        return self.ctx.run_relax
+    def should_run_scf(self):
+        """Check if we should run an SCF calculation."""
+        return self.ctx.run_scf
 
-    def run_relax(self):
+    def run_scf(self):
         inputs = AttributeDict(self.exposed_inputs(CommonRelaxInputGenerator, namespace="scf"))
         inputs.metadata.call_link_label = "scf"
         inputs.structure = self.ctx.current_structure
@@ -210,15 +217,15 @@ class AcwfAppWorkChain(WorkChain):
 
         self.report(f"launching CommonRelaxWorkChain<{running.pk}>")
 
-        return ToContext(workchain_relax=running)
+        return ToContext(workchain_scf=running)
 
-    def inspect_relax(self):
-        """Verify that the `CommonRelaxWorkChain` finished successfully."""
-        workchain = self.ctx.workchain_relax
+    def inspect_scf(self):
+        """Verify that the SCF run finished successfully."""
+        workchain = self.ctx.workchain_scf
 
         if not workchain.is_finished_ok:
-            self.report(f"CommonRelaxWorkChain failed with exit status {workchain.exit_status}")
-            return self.exit_codes.ERROR_SUB_PROCESS_FAILED_RELAX
+            self.report(f"SCF run failed with exit status {workchain.exit_status}")
+            return self.exit_codes.ERROR_SUB_PROCESS_FAILED_SCF
 
         if "relaxed_structure" in workchain.outputs:
             self.ctx.current_structure = workchain.outputs.relaxed_structure
@@ -227,8 +234,8 @@ class AcwfAppWorkChain(WorkChain):
     def should_run_plugin(self, name):
         return name in self.inputs
 
-    def run_plugin(self):
-        """Run the plugin `WorkChain`."""
+    def run_plugins(self):
+        """Run the plugin workflows."""
         plugin_running = {}
         for name, entry_point in plugin_entries.items():
             if not self.should_run_plugin(name):
@@ -246,8 +253,8 @@ class AcwfAppWorkChain(WorkChain):
 
         return ToContext(**plugin_running)
 
-    def inspect_plugin(self):
-        """Verify that the `pluginWorkChain` finished successfully."""
+    def inspect_plugins(self):
+        """Verify that the plugin workflows finished successfully."""
         self.report("Inspect plugins:")
         for name, entry_point in plugin_entries.items():
             if not self.should_run_plugin(name):
