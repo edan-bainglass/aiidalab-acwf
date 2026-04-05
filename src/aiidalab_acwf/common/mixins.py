@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import contextlib
 import typing as t
-import warnings
 
 import traitlets as tl
 
@@ -35,8 +34,7 @@ class HasInputStructure(tl.HasTraits):
     @property
     def has_tags(self):
         return self.has_structure and any(
-            not kind_name.isalpha()
-            for kind_name in self.input_structure.get_kind_names()
+            not kind_name.isalpha() for kind_name in self.input_structure.get_kind_names()
         )
 
 
@@ -67,9 +65,7 @@ class HasModels(t.Generic[M]):
                 sub_model = self._models[keys[0]]
                 if isinstance(sub_model, HasModels):
                     return sub_model.get_model(keys[1])
-                raise TypeError(
-                    f"Model with identifier '{identifier}' does not have sub-models."
-                )
+                raise TypeError(f"Model with identifier '{identifier}' does not have sub-models.")
         raise ValueError(f"Model with identifier '{identifier}' not found.")
 
     def get_models(self) -> t.Iterable[tuple[str, M]]:
@@ -90,21 +86,7 @@ class HasModels(t.Generic[M]):
             dependency_parts = dependency.rsplit(".", 1)
             if len(dependency_parts) == 1:  # from parent
                 target_model = self
-                if dependency == "input_structure":
-                    # BACKWARDS COMPATIBLE - remove when all plugins are updated!
-                    warnings.warn(
-                        (
-                            "The `input_structure` dependency is deprecated. "
-                            "Please use the `structure_uuid` dependency instead. "
-                            "`input_structure` is now a property that loads the "
-                            "structure by uuid."
-                        ),
-                        DeprecationWarning,
-                        stacklevel=2,
-                    )
-                    trait = "structure_uuid"
-                else:
-                    trait = dependency
+                trait = dependency
             else:  # from sibling
                 sibling, trait = dependency_parts
                 target_model = self.get_model(sibling)
@@ -137,11 +119,7 @@ class HasProcess(tl.HasTraits):
     def properties(self) -> list:
         # read the attributes directly instead of using the `get_list` method
         # to avoid error in case of the orm.List object being converted to a orm.Data object
-        return (
-            self.inputs.properties.base.attributes.get("list")
-            if self.has_process
-            else []
-        )
+        return self.inputs.properties.base.attributes.get("list") if self.has_process else []
 
     @property
     def outputs(self) -> orm.NodeLinksManager | None:

@@ -17,6 +17,12 @@ Orbital = DataFactory("core.orbital")
 
 plugin_entries = get_entry_items("aiidalab_acwf", "workchain")
 
+PROTOCOL_ALIASES = {
+    "fast": "verification-PBE-v1",
+    "moderate": "verification-PBE-v1",
+    "precise": "verification-PBE-v1",
+}
+
 
 class AcwfAppWorkChain(WorkChain):
     """WorkChain designed to calculate the requested properties in the AiiDAlab Quantum ESPRESSO app."""
@@ -53,6 +59,12 @@ class AcwfAppWorkChain(WorkChain):
                 "help": "Inputs for the `CommonRelaxWorkChain` used for SCF calculations, if not specified at all, SCF step is skipped.",
             },
         )
+        # These enum-based controls are consumed at runtime to build the
+        # engine-specific SCF workflow, and should not be stored as DB-linked
+        # inputs of the wrapper workchain.
+        for name in ("spin_type", "relax_type", "electronic_type"):
+            if name in spec.inputs["scf"]:
+                spec.inputs["scf"][name].non_db = True
         spec.expose_inputs(
             CommonPostProcessInputGenerator,
             namespace="pp",
@@ -206,13 +218,19 @@ class AcwfAppWorkChain(WorkChain):
 
     def run_scf(self):
         inputs = AttributeDict(self.exposed_inputs(CommonRelaxInputGenerator, namespace="scf"))
-        inputs.metadata.call_link_label = "scf"
+        inputs.pop("metadata", None)
         inputs.structure = self.ctx.current_structure
 
         engine = self.inputs.engine.value
         RelaxWorkChain = WorkflowFactory(f"common_workflows.relax.{engine}")
         input_generator = RelaxWorkChain.get_input_generator()
+
+        protocol = inputs.get("protocol")
+        if protocol in PROTOCOL_ALIASES:
+            inputs.protocol = PROTOCOL_ALIASES[protocol]
+
         builder = input_generator.get_builder(**inputs)
+        builder.metadata.call_link_label = "scf"
         running = self.submit(builder)
 
         self.report(f"launching CommonRelaxWorkChain<{running.pk}>")
@@ -243,6 +261,8 @@ class AcwfAppWorkChain(WorkChain):
             self.report(f"Run workflow: {name}")
             plugin_workchain = entry_point["workchain"]
             inputs = AttributeDict(self.exposed_inputs(plugin_workchain, namespace=name))
+            if "metadata" not in inputs:
+                inputs.metadata = AttributeDict()
             inputs.metadata.call_link_label = name
             if entry_point.get("update_inputs"):
                 entry_point["update_inputs"](inputs, self.ctx)
@@ -267,10 +287,10 @@ class AcwfAppWorkChain(WorkChain):
             self.out_many(self.exposed_outputs(workchain, entry_point["workchain"], namespace=name))
 
     def on_terminated(self):
-        """Clean the working directories of all child calculations if `clean_workdir=True` in the inputs."""
+        """Optionally clean remote work directories."""
         super().on_terminated()
 
-        if self.inputs.clean_workdir.value is False:
+        if "clean_workdir" not in self.inputs or self.inputs.clean_workdir.value is False:
             self.report("remote folders will not be cleaned")
             return
 

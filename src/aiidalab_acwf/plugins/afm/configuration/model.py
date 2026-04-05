@@ -55,15 +55,15 @@ class AfmConfigurationSettingsModel(ConfigurationSettingsModel):
     sigma = tl.Float(0.7)
 
     # Scan parameters
-    scan_step_x = tl.Float(20.0)
-    scan_step_y = tl.Float(20.0)
-    scan_step_z = tl.Float(8.0)
+    scan_step_x = tl.Float(0.1)
+    scan_step_y = tl.Float(0.1)
+    scan_step_z = tl.Float(0.1)
     scan_min_x = tl.Float(0.0)
     scan_min_y = tl.Float(0.0)
     scan_min_z = tl.Float(5.0)
-    scan_max_x = tl.Float(0.1)
-    scan_max_y = tl.Float(0.1)
-    scan_max_z = tl.Float(0.1)
+    scan_max_x = tl.Float(20.0)
+    scan_max_y = tl.Float(20.0)
+    scan_max_z = tl.Float(8.0)
 
     # Conversion parameters Fz -> df
     f0_cantilever = tl.Float(30300.0)
