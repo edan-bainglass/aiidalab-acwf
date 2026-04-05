@@ -17,12 +17,6 @@ Orbital = DataFactory("core.orbital")
 
 plugin_entries = get_entry_items("aiidalab_acwf", "workchain")
 
-PROTOCOL_ALIASES = {
-    "fast": "verification-PBE-v1",
-    "moderate": "verification-PBE-v1",
-    "precise": "verification-PBE-v1",
-}
-
 
 class AcwfAppWorkChain(WorkChain):
     """WorkChain designed to calculate the requested properties in the AiiDAlab Quantum ESPRESSO app."""
@@ -224,10 +218,6 @@ class AcwfAppWorkChain(WorkChain):
         engine = self.inputs.engine.value
         RelaxWorkChain = WorkflowFactory(f"common_workflows.relax.{engine}")
         input_generator = RelaxWorkChain.get_input_generator()
-
-        protocol = inputs.get("protocol")
-        if protocol in PROTOCOL_ALIASES:
-            inputs.protocol = PROTOCOL_ALIASES[protocol]
 
         builder = input_generator.get_builder(**inputs)
         builder.metadata.call_link_label = "scf"
