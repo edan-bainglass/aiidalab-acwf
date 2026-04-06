@@ -1,5 +1,5 @@
-from .common import CommonConfigurationSettingsPanel
 from .model import CommonConfigurationSettingsModel
+from .panel import CommonConfigurationSettingsPanel
 
 __all__ = [
     "CommonConfigurationSettingsModel",

@@ -11,7 +11,7 @@ from aiidalab_acwf.common.wizard import ConfirmableDependentWizardStep
 from aiidalab_acwf.parameters import DEFAULT_PARAMETERS
 from aiidalab_acwf.plugins.utils import get_entry_items
 
-from .common_settings import CommonResourceSettingsModel, CommonResourceSettingsPanel
+from .common import CommonResourceSettingsModel, CommonResourceSettingsPanel
 from .model import ResourcesStepModel
 
 DEFAULT: dict = DEFAULT_PARAMETERS  # type: ignore

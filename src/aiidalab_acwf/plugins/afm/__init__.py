@@ -1,9 +1,11 @@
+from aiidalab_acwf.common.panel import PluginResourceSettingsPanel
+
 from .configuration import (
     AfmConfigurationSettingsModel,
     AfmConfigurationSettingsPanel,
     AfmPluginOutline,
 )
-from .resources import AfmResourceSettingsModel, AfmResourceSettingsPanel
+from .resources import AfmResourceSettingsModel
 from .result import AfmResultsModel, AfmResultsPanel
 from .workflow import workchain_and_builder
 
@@ -15,7 +17,7 @@ afm = {
     },
     "resources": {
         "model": AfmResourceSettingsModel,
-        "panel": AfmResourceSettingsPanel,
+        "panel": PluginResourceSettingsPanel[AfmResourceSettingsModel],
         "engines": {
             "quantum_espresso": "Quantum ESPRESSO",
             "cp2k": "CP2K",

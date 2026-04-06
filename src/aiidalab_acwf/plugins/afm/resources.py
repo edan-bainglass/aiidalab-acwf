@@ -1,5 +1,5 @@
 from aiidalab_acwf.common.code.model import CodeModel
-from aiidalab_acwf.common.panel import PluginResourceSettingsModel, PluginResourceSettingsPanel
+from aiidalab_acwf.common.panel import PluginResourceSettingsModel
 
 
 class AfmResourceSettingsModel(PluginResourceSettingsModel):
@@ -22,7 +22,3 @@ class AfmResourceSettingsModel(PluginResourceSettingsModel):
                 ),
             }
         )
-
-
-class AfmResourceSettingsPanel(PluginResourceSettingsPanel[AfmResourceSettingsModel]):
-    """Panel for configuring AFM resources."""
