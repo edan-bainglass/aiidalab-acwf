@@ -6,14 +6,12 @@ from aiidalab_acwf.common.panel import ConfigurationSettingsPanel
 from .model import AfmConfigurationSettingsModel
 
 
-class AfmConfigurationSettingsPanel(
-    ConfigurationSettingsPanel[AfmConfigurationSettingsModel]
-):
+class AfmConfigurationSettingsPanel(ConfigurationSettingsPanel[AfmConfigurationSettingsModel]):
     def render(self):
         if self.rendered:
             return
 
-        mode = ipw.ToggleButtons(description="Mode")
+        mode = ipw.ToggleButtons(description="AFM simulation mode")
         ipw.dlink((self._model, "mode_options"), (mode, "options"))
         ipw.link((self._model, "mode"), (mode, "value"))
 
@@ -28,6 +26,7 @@ class AfmConfigurationSettingsPanel(
         ipw.link((self._model, "grid_nz"), (grid_nz, "value"))
         grid_n_label = ipw.Label("Force field sampling")
         grid_n = ipw.HBox([grid_n_label, grid_nx, grid_ny, grid_nz])
+        grid_n.add_class("vector-hbox")
 
         grid_ax = ipw.FloatText()
         ipw.link((self._model, "grid_ax"), (grid_ax, "value"))
@@ -37,6 +36,7 @@ class AfmConfigurationSettingsPanel(
         ipw.link((self._model, "grid_az"), (grid_az, "value"))
         grid_a_label = ipw.Label("Grid vector A (Å)")
         grid_a = ipw.HBox([grid_a_label, grid_ax, grid_ay, grid_az])
+        grid_a.add_class("vector-hbox")
 
         grid_bx = ipw.FloatText()
         ipw.link((self._model, "grid_bx"), (grid_bx, "value"))
@@ -46,6 +46,7 @@ class AfmConfigurationSettingsPanel(
         ipw.link((self._model, "grid_bz"), (grid_bz, "value"))
         grid_b_label = ipw.Label("Grid vector B (Å)")
         grid_b = ipw.HBox([grid_b_label, grid_bx, grid_by, grid_bz])
+        grid_b.add_class("vector-hbox")
 
         grid_cx = ipw.FloatText()
         ipw.link((self._model, "grid_cx"), (grid_cx, "value"))
@@ -55,6 +56,7 @@ class AfmConfigurationSettingsPanel(
         ipw.link((self._model, "grid_cz"), (grid_cz, "value"))
         grid_c_label = ipw.Label("Grid vector C (Å)")
         grid_c = ipw.HBox([grid_c_label, grid_cx, grid_cy, grid_cz])
+        grid_c.add_class("vector-hbox")
 
         probe_type = ipw.Dropdown(description="Probe type")
         ipw.dlink((self._model, "probe_type_options"), (probe_type, "options"))
@@ -71,6 +73,7 @@ class AfmConfigurationSettingsPanel(
         ipw.link((self._model, "r0_probe_z"), (r0_probe_z, "value"))
         r0_probe_label = ipw.Label("Probe position (Å)")
         r0_probe = ipw.HBox([r0_probe_label, r0_probe_x, r0_probe_y, r0_probe_z])
+        r0_probe.add_class("vector-hbox")
 
         tip = ipw.Dropdown(description="Tip")
         ipw.dlink((self._model, "tip_options"), (tip, "options"))
@@ -93,6 +96,7 @@ class AfmConfigurationSettingsPanel(
         ipw.link((self._model, "scan_step_z"), (scan_step_z, "value"))
         scan_step_label = ipw.Label("Scan step (Å)")
         scan_step = ipw.HBox([scan_step_label, scan_step_x, scan_step_y, scan_step_z])
+        scan_step.add_class("vector-hbox")
 
         scan_min_x = ipw.FloatText()
         ipw.link((self._model, "scan_min_x"), (scan_min_x, "value"))
@@ -102,6 +106,7 @@ class AfmConfigurationSettingsPanel(
         ipw.link((self._model, "scan_min_z"), (scan_min_z, "value"))
         scan_min_label = ipw.Label("Scan min (Å)")
         scan_min = ipw.HBox([scan_min_label, scan_min_x, scan_min_y, scan_min_z])
+        scan_min.add_class("vector-hbox")
 
         scan_max_x = ipw.FloatText()
         ipw.link((self._model, "scan_max_x"), (scan_max_x, "value"))
@@ -111,6 +116,7 @@ class AfmConfigurationSettingsPanel(
         ipw.link((self._model, "scan_max_z"), (scan_max_z, "value"))
         scan_max_label = ipw.Label("Scan max (Å)")
         scan_max = ipw.HBox([scan_max_label, scan_max_x, scan_max_y, scan_max_z])
+        scan_max.add_class("vector-hbox")
 
         f0_cantilever = ipw.FloatText(description="Cantilever frequency (Hz)")
         ipw.link((self._model, "f0_cantilever"), (f0_cantilever, "value"))
@@ -120,7 +126,6 @@ class AfmConfigurationSettingsPanel(
 
         self.children = [
             InAppGuide(identifier="afm-configuration-settings"),
-            ipw.HTML("<h3>AFM simulation mode</h3>"),
             mode,
             ipw.HTML("<h3>Force-field grid parameters</h3>"),
             pbc,

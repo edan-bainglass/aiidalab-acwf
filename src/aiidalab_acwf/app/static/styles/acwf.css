@@ -6,40 +6,15 @@
   text-align: center;
 }
 
-.workflow-selector-row {
-  display: flex;
-  gap: 0.5rem;
-  margin: 1rem 0;
-}
-
-.workflow-inputs .widget-label {
-  width: 225px;
-  margin-right: 8px;
-  text-align: right;
-}
-
-.workflow-inputs .widget-hbox .widget-label {
-  margin-right: 6px;
-}
-
-.workflow-inputs .widget-hbox .widget-text {
-  width: 67px;
-}
-
 .settings-label {
   width: 120px;
   text-align: right;
 }
 
-.afm-configuration-settings-panel .widget-checkbox {
-  width: fit-content;
+.vector-hbox .widget-label {
+  margin-right: 6px;
 }
 
-.afm-configuration-settings-panel .text-widget {
-  width: auto;
-}
-
-.afm-configuration-settings-panel .widget-label {
-  width: 175px;
-  text-align: right;
+.vector-hbox .widget-text {
+  width: 117px;
 }
