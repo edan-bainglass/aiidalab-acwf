@@ -91,6 +91,7 @@ class Wizard(ipw.Accordion):
                 self._on_step_state_change,
                 "state",
             )
+            step_model.update_state()
 
         self.structure_model.observe(
             self._on_structure_confirmation_change,
