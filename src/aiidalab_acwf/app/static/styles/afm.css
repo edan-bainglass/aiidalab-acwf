@@ -18,3 +18,10 @@
 .afm-configuration-settings-panel h3 {
   margin-top: 12px;
 }
+
+.afm-plots-grid {
+  width: 100%;
+  overflow-x: hidden;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-gap: 8px;
+}
