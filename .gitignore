@@ -12,3 +12,6 @@ export/
 # Sphinx documentation
 docs/html
 screenshots/
+
+# Dev files
+.dev
