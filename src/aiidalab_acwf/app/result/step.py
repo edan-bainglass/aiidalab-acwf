@@ -161,10 +161,10 @@ class ResultsStep(DependentWizardStep[ResultsStepModel]):
             ],
             log_widget=self.log_widget,
         )
-        # ipw.dlink(
-        #     (self._model, "process_uuid"),
-        #     (self.process_monitor, "value"),
-        # )
+        ipw.dlink(
+            (self._model, "process_uuid"),
+            (self.process_monitor, "value"),
+        )
 
     def _set_default_results_panel(self):
         if not self.rendered:
