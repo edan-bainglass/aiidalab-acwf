@@ -9,34 +9,12 @@ from .model import AfmResultsModel
 
 class AfmResultsPanel(ResultsPanel[AfmResultsModel]):
     def _render(self):
-        metadata_html = self._build_metadata_html()
         plots_widget = self._build_plots_widget()
 
         self.results_container.children = [
             ipw.HTML("<h3 style='margin: 0 0 8px 0;'>AFM outputs</h3>"),
-            metadata_html,
             plots_widget,
         ]
-
-    def _build_metadata_html(self) -> ipw.HTML:
-        metadata = self._model.metadata
-        rows = []
-        for key, value in metadata.items():
-            title = key.replace("_", " ").capitalize()
-            rows.append(
-                f"<tr><td style='padding:4px 8px;'><b>{title}</b></td><td>{value}</td></tr>"
-            )
-
-        if not rows:
-            rows = ["<tr><td>No metadata available.</td></tr>"]
-
-        return ipw.HTML(
-            value=(
-                "<table style='width:100%; border-collapse:collapse; margin-bottom:12px;'>"
-                f"{''.join(rows)}"
-                "</table>"
-            )
-        )
 
     def _build_plots_widget(self) -> ipw.Widget:
         if not self._model.plot_entries:
