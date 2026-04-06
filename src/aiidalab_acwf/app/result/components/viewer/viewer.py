@@ -82,13 +82,11 @@ class WorkflowResultsViewer(ResultsComponent[WorkflowResultsViewerModel]):
         }
 
     def _fetch_plugin_results(self, viewer_model: WorkflowResultsViewerModel):
-        entries = get_entry_items("acwf", "result")
+        entries = get_entry_items("aiidalab_acwf", "result")
         for identifier, entry in entries.items():
             for key in ("panel", "model"):
                 if key not in entry:
-                    raise ValueError(
-                        f"Entry {identifier} is missing the results '{key}' key"
-                    )
+                    raise ValueError(f"Entry {identifier} is missing the results '{key}' key")
             panel = entry["panel"]
             model = entry["model"]()
             viewer_model.add_model(identifier, model)

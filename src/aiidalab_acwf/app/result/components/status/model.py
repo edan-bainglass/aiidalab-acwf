@@ -1,4 +1,4 @@
-from aiidalab_qe.app.result.components import ResultsComponentModel
+from aiidalab_acwf.app.result.components import ResultsComponentModel
 
 
 class WorkChainStatusModel(ResultsComponentModel):

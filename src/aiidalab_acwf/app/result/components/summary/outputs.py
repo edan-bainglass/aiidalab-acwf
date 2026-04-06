@@ -23,9 +23,6 @@ class WorkChainOutputs(ipw.VBox):
             export_dir = Path.cwd().joinpath("exports")
         self.export_dir = export_dir
 
-        if node.process_label != "QeAppWorkChain":
-            raise KeyError(str(node.node_type))
-
         self.node = node
 
         self._create_archive_indicator = ipw.HTML(
@@ -96,7 +93,7 @@ class WorkChainOutputs(ipw.VBox):
     def _prepare_calcjob_io(cls, node: orm.WorkChainNode, root_folder: Path):
         """Prepare the calculation job input and output files.
 
-        :param node: QeAppWorkChain node.
+        :param node: WorkChain node.
         """
         counter = 1
 

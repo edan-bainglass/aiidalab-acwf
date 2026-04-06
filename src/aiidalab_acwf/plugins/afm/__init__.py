@@ -4,6 +4,7 @@ from .configuration import (
     AfmPluginOutline,
 )
 from .resources import AfmResourceSettingsModel, AfmResourceSettingsPanel
+from .result import AfmResultsModel, AfmResultsPanel
 from .workflow import workchain_and_builder
 
 afm = {
@@ -37,4 +38,8 @@ afm = {
         },
     },
     "workchain": workchain_and_builder,
+    "result": {
+        "model": AfmResultsModel,
+        "panel": AfmResultsPanel,
+    },
 }

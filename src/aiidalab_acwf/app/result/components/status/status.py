@@ -29,9 +29,6 @@ class WorkChainStatusPanel(ResultsComponent[WorkChainStatusModel]):
             self.node_view,
         ]
 
-    def _post_render(self):
-        self._select_tree_root()
-
     def _on_monitor_counter_change(self, _):
         if self.rendered:
             self.process_tree.update()

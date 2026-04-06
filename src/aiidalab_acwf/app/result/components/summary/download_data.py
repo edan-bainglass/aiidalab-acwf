@@ -81,10 +81,10 @@ class DownloadDataWidget(ipw.VBox):
         """
         if "archive" in button_instance.description:
             what = "archive"
-            filename = f"export_qeapp_calculation_pk_{self.node.pk}.aiida"
+            filename = f"export_acwf_calculation_pk_{self.node.pk}.aiida"
         else:
             what = "raw"
-            filename = f"export_{self.node.pk}_raw.zip"
+            filename = f"export_acwf_{self.node.pk}_raw.zip"
 
         self._disable_buttons()
         self._show_downloading_message(what)
