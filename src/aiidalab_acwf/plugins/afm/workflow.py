@@ -46,8 +46,7 @@ def get_builder(structure, parameters, codes, **kwargs):
         case=case,
         structure=structure,
         afm_params=_translate_afm_params(afm_parameters),
-        relax=common_parameters.get("relax_type", "none") != "none",
-        dft_params=_translate_dft_params(common_parameters, scf_code),
+        scf_params=_translate_scf_params(common_parameters, scf_code),
         pp_params=_translate_pp_params(pp_code) if pp_code.get("code") is not None else None,
         tip=kwargs.get("tip"),
     )
@@ -143,39 +142,27 @@ def _translate_afm_params(afm_parameters: dict) -> dict:
     }
 
 
-def _translate_dft_params(common_parameters: dict, code_settings: dict) -> dict:
+def _translate_scf_params(common_parameters: dict, code_settings: dict) -> dict:
     protocol = common_parameters.get("protocol", "moderate")
     relax_type = common_parameters.get("relax_type", "none")
     engines = {"relax": _code_settings(code_settings)}
     return {
-        "geom": {
-            "engines": engines,
-            "protocol": protocol,
+        "engines": engines,
+        "protocol": protocol,
+        "structure": {
             "relax_type": relax_type,
         },
         "tip": {
-            "engines": engines,
-            "protocol": protocol,
             "relax_type": "none",
         },
     }
 
 
 def _translate_pp_params(code_settings: dict) -> dict:
-    pp_engine = {
+    return {
         "engines": {
             "pp": _code_settings(code_settings),
         }
-    }
-    return {
-        "hartree_potential": {
-            **pp_engine,
-            "quantity": "potential",
-        },
-        "charge_density": {
-            **pp_engine,
-            "quantity": "charge_density",
-        },
     }
 
 
