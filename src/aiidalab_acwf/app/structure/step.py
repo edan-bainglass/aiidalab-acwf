@@ -8,6 +8,7 @@ from aiidalab_widgets_base import (
     BasicCellEditor,
     BasicStructureEditor,
     SmilesWidget,
+    StructureBrowserWidget,
     StructureManagerWidget,
     StructureUploadWidget,
 )
@@ -54,6 +55,7 @@ class StructureStep(ConfirmableWizardStep[StructureStepModel]):
 
         importers = [
             StructureUploadWidget(title="Upload file"),
+            StructureBrowserWidget(title="Browse AiiDA database"),
             SmilesWidget(title="From SMILES"),
         ]
 

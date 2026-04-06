@@ -12,10 +12,6 @@
   margin: 1rem 0;
 }
 
-.structure-manager > div:not(:nth-child(2)) {
-  display: none;
-}
-
 .workflow-inputs .widget-label {
   width: 225px;
   margin-right: 8px;
