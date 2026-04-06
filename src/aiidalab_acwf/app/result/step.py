@@ -7,6 +7,8 @@ from aiidalab_acwf.common.wizard import DependentWizardStep, State
 from aiidalab_widgets_base import ProcessMonitor
 
 from .components import ResultsComponent
+from .components.status import WorkChainStatusModel, WorkChainStatusPanel
+from .components.summary import WorkflowSummary, WorkflowSummaryModel
 from .components.viewer import WorkflowResultsViewer, WorkflowResultsViewerModel
 from .model import ResultsStepModel
 
@@ -22,11 +24,21 @@ class ResultsStep(DependentWizardStep[ResultsStepModel]):
     ):
         super().__init__(model=model, **kwargs)
 
+        summary_model = WorkflowSummaryModel()
+        self.summary_panel = WorkflowSummary(model=summary_model)
+        self._model.add_model("summary", summary_model)
+
         results_model = WorkflowResultsViewerModel()
         self.results_panel = WorkflowResultsViewer(model=results_model)
         self._model.add_model("results", results_model)
 
+        status_model = WorkChainStatusModel()
+        self.status_panel = WorkChainStatusPanel(model=status_model)
+        self._model.add_model("status", status_model)
+
         self.panels = {
+            "Summary": self.summary_panel,
+            "Status": self.status_panel,
             "Results": self.results_panel,
         }
 
@@ -113,7 +125,11 @@ class ResultsStep(DependentWizardStep[ResultsStepModel]):
             "value",
         )
 
-        self.container = ipw.VBox()
+        self.container = ipw.VBox(
+            children=[
+                self.status_panel,
+            ]
+        )
 
         self.content.children = [
             InAppGuide(identifier="results-step"),
@@ -169,11 +185,11 @@ class ResultsStep(DependentWizardStep[ResultsStepModel]):
     def _set_default_results_panel(self):
         if not self.rendered:
             return
-        # self.toggle_controls.value = (
-        #     "Results"
-        #     if self._model.has_process and self._model.process.is_finished_ok
-        #     else "Status"
-        # )
+        self.toggle_controls.value = (
+            "Results"
+            if self._model.has_process and self._model.process.is_finished_ok
+            else "Status"
+        )
 
     def _update_status(self):
         self._model.monitor_counter += 1

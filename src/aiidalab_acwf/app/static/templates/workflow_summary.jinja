@@ -1,0 +1,38 @@
+<body>
+  <div class="workflow-summary summary-{{ format }}">
+    {% for section in report %}
+    <div class="section" id="{{ section | replace ('_', '-') }}">
+      <h2 class="header">{{ section | replace ('_', ' ') | capitalize }}</h2>
+      <table>
+        {% for key, value in report[section].items() %}
+        <tr class="entry">
+          {% set indent = (schema[key].indent | default(0)) * 16 %}
+          <td class="key" style="margin-left: {{ indent }}px">
+            {{ schema[key].title }}
+          </td>
+          <td class="value">
+            {% if schema[key].type == "list" %}
+            <ul class="list-no-bullets {{format}}-format">
+              {% for item in value %}
+                <li>{{ item }}</li>
+              {% endfor %}
+            </ul>
+            {% elif schema[key].type == "link" %}
+              {% if value.url %}
+              <a class="link" href="{{ value.url }}" target="_blank">
+                {{ value.value }}
+              </a>
+              {% else %}
+              {{ value.value }}
+              {% endif %}
+            {% else %}
+            {{ value }}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endfor %}
+  </div>
+</body>
