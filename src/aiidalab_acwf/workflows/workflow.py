@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from aiida_common_workflows.workflows.pp import CommonPostProcessInputGenerator
 from aiida_common_workflows.workflows.relax import CommonRelaxInputGenerator
 
 from aiida import orm
@@ -53,22 +52,13 @@ class AcwfAppWorkChain(WorkChain):
                 "help": "Inputs for the `CommonRelaxWorkChain` used for SCF calculations, if not specified at all, SCF step is skipped.",
             },
         )
+
         # These enum-based controls are consumed at runtime to build the
         # engine-specific SCF workflow, and should not be stored as DB-linked
         # inputs of the wrapper workchain.
         for name in ("spin_type", "relax_type", "electronic_type"):
             if name in spec.inputs["scf"]:
                 spec.inputs["scf"][name].non_db = True
-        spec.expose_inputs(
-            CommonPostProcessInputGenerator,
-            namespace="pp",
-            exclude=("parent_folder", "quantity"),
-            namespace_options={
-                "required": False,
-                "populate_defaults": False,
-                "help": "Inputs for the `CommonPostProcessWorkChain`, if not specified at all, the post-processing step is skipped.",
-            },
-        )
 
         i = 0
         for name, entry_point in plugin_entries.items():
@@ -165,27 +155,6 @@ class AcwfAppWorkChain(WorkChain):
             builder.scf = scf_parameters
         else:
             builder.pop("scf", None)
-
-        if "pp" in common_resources["codes"]:
-            pp_code = common_resources["codes"]["pp"]
-            pp_parameters = {
-                "engines": {
-                    "pp": {
-                        "code": pp_code["code"],
-                        "options": {
-                            "resources": {
-                                "num_machines": pp_code["nodes"],
-                                "tot_num_mpiprocs": pp_code["cpus"],
-                                "num_cores_per_mpiproc": pp_code["cpus_per_task"],
-                                "num_mpiprocs_per_machine": pp_code["ntasks_per_node"],
-                            }
-                        },
-                    }
-                }
-            }
-            builder.pp = pp_parameters
-        else:
-            builder.pop("pp", None)
 
         for name, entry_point in plugin_entries.items():
             if name in properties:
