@@ -17,20 +17,6 @@ from .model import ResourcesStepModel
 DEFAULT: dict = DEFAULT_PARAMETERS  # type: ignore
 
 
-def _get_engine_resources(
-    codes_by_engine: dict[str, object],
-    engine: str,
-) -> dict[str, str]:
-    engine_resources = codes_by_engine.get(engine, {})
-    if not isinstance(engine_resources, dict):
-        return {}
-    return {
-        str(code_name): calc_job_plugin
-        for code_name, calc_job_plugin in engine_resources.items()
-        if isinstance(calc_job_plugin, str)
-    }
-
-
 class ResourcesStep(ConfirmableDependentWizardStep[ResourcesStepModel]):
     _missing_message = "Missing input structure and/or workflow configuration"
 
@@ -112,7 +98,7 @@ class ResourcesStep(ConfirmableDependentWizardStep[ResourcesStepModel]):
                     ipw.HTML("<b>Engine:</b>"),
                     self.engine_selector,
                 ],
-                layout=ipw.Layout(align_items="center", grid_gap="8px"),
+                layout=ipw.Layout(align_items="center", grid_gap="8px", margin="0 0 8px"),
             ),
             self.plugin_tabs,
             self.confirm_box,
@@ -141,6 +127,10 @@ class ResourcesStep(ConfirmableDependentWizardStep[ResourcesStepModel]):
             return
         panel = self.plugin_tabs.children[tab_index]
         panel.render()  # type: ignore
+
+    def _on_code_selection_change(self, _):
+        self._model.sync_global_codes()
+        self._model.update_blockers()
 
     def _refresh_resources(self, _=None):
         for _, model in self._model.get_models():
@@ -332,6 +322,16 @@ class ResourcesStep(ConfirmableDependentWizardStep[ResourcesStepModel]):
 
         return "Post-processing is handled in the selected SCF engine configuration."
 
-    def _on_code_selection_change(self, _):
-        self._model.sync_global_codes()
-        self._model.update_blockers()
+
+def _get_engine_resources(
+    codes_by_engine: dict[str, object],
+    engine: str,
+) -> dict[str, str]:
+    engine_resources = codes_by_engine.get(engine, {})
+    if not isinstance(engine_resources, dict):
+        return {}
+    return {
+        str(code_name): calc_job_plugin
+        for code_name, calc_job_plugin in engine_resources.items()
+        if isinstance(calc_job_plugin, str)
+    }

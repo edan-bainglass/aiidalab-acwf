@@ -2,11 +2,6 @@ import typing as t
 
 import traitlets as tl
 
-from aiidalab_acwf.app.configuration import ConfigurationStepModel
-from aiidalab_acwf.app.resources import ResourcesStepModel
-from aiidalab_acwf.app.result import ResultsStepModel
-from aiidalab_acwf.app.structure import StructureStepModel
-from aiidalab_acwf.app.submission import SubmissionStepModel
 from aiidalab_acwf.common.mixins import HasModels
 from aiidalab_acwf.common.mvc import Model
 from aiidalab_acwf.common.wizard import WizardStepModel
@@ -27,37 +22,22 @@ class WizardModel(Model, HasModels[WizardStepModel]):
 
         if step_index >= 0:
             self.loading = True
-            structure_model = t.cast(
-                StructureStepModel,
-                self.get_model("structure"),
-            )
+            structure_model = self.get_model("structure")
             structure_model.set_model_state(structure_state)
 
             if step_index >= 1:
                 structure_model.confirm()
-                configuration_model = t.cast(
-                    ConfigurationStepModel,
-                    self.get_model("configure"),
-                )
+                configuration_model = self.get_model("configure")
                 configuration_model.set_model_state(configuration_state)
 
                 if step_index >= 2:
                     configuration_model.confirm()
-                    resources_model = t.cast(
-                        ResourcesStepModel,
-                        self.get_model("resources"),
-                    )
+                    resources_model = self.get_model("resources")
                     resources_model.set_model_state(resources_state)
 
                     if step_index >= 3:
                         resources_model.confirm()
-                        submission_model = t.cast(
-                            SubmissionStepModel,
-                            self.get_model("submit"),
-                        )
-                        submission_model.structure_uuid = structure_model.structure_uuid
-                        submission_model.input_parameters = configuration_model.get_model_state()
-                        submission_model.resources = resources_model.get_model_state()
+                        submission_model = self.get_model("submit")
                         submission_model.set_model_state(submission_state or {})
 
                         if step_index >= 4:
@@ -73,32 +53,17 @@ class WizardModel(Model, HasModels[WizardStepModel]):
             self.selected_index = step_index
 
     def update_configuration_model(self):
-        structure_model = t.cast(
-            StructureStepModel,
-            self.get_model("structure"),
-        )
-        configuration_model = t.cast(
-            ConfigurationStepModel,
-            self.get_model("configure"),
-        )
+        structure_model = self.get_model("structure")
+        configuration_model = self.get_model("configure")
         if structure_model.confirmed:
             configuration_model.structure_uuid = structure_model.structure_uuid
         else:
             configuration_model.structure_uuid = None
 
     def update_resources_model(self):
-        structure_model = t.cast(
-            StructureStepModel,
-            self.get_model("structure"),
-        )
-        configuration_model = t.cast(
-            ConfigurationStepModel,
-            self.get_model("configure"),
-        )
-        resources_model = t.cast(
-            ResourcesStepModel,
-            self.get_model("resources"),
-        )
+        structure_model = self.get_model("structure")
+        configuration_model = self.get_model("configure")
+        resources_model = self.get_model("resources")
         if configuration_model.confirmed:
             resources_model.structure_uuid = structure_model.structure_uuid
             resources_model.input_parameters = configuration_model.get_model_state()
@@ -107,22 +72,10 @@ class WizardModel(Model, HasModels[WizardStepModel]):
             resources_model.input_parameters = {}
 
     def update_submission_model(self):
-        structure_model = t.cast(
-            StructureStepModel,
-            self.get_model("structure"),
-        )
-        configuration_model = t.cast(
-            ConfigurationStepModel,
-            self.get_model("configure"),
-        )
-        resources_model = t.cast(
-            ResourcesStepModel,
-            self.get_model("resources"),
-        )
-        submission_model = t.cast(
-            SubmissionStepModel,
-            self.get_model("submit"),
-        )
+        structure_model = self.get_model("structure")
+        configuration_model = self.get_model("configure")
+        resources_model = self.get_model("resources")
+        submission_model = self.get_model("submit")
         if resources_model.confirmed:
             submission_model.structure_uuid = structure_model.structure_uuid
             submission_model.input_parameters = configuration_model.get_model_state()
@@ -135,14 +88,8 @@ class WizardModel(Model, HasModels[WizardStepModel]):
             submission_model.update_state()
 
     def update_results_model(self):
-        submission_model = t.cast(
-            SubmissionStepModel,
-            self.get_model("submit"),
-        )
-        results_model = t.cast(
-            ResultsStepModel,
-            self.get_model("results"),
-        )
+        submission_model = self.get_model("submit")
+        results_model = self.get_model("results")
         tl.dlink(
             (submission_model, "process_uuid"),
             (results_model, "process_uuid"),
