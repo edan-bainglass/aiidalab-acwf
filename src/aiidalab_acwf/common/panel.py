@@ -631,6 +631,7 @@ class ResultsPanel(Panel[RM]):
 
     def _on_load_results_click(self, _):
         self.load_controls.children = []
+        self._model.update()
         self._load_results()
 
     def _load_results(self):
