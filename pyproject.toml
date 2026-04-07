@@ -25,6 +25,7 @@ target-version = "py39"
 
 [tool.ruff.lint]
 ignore = [
+    "ARG002",
     "E501",
     "E402",
     "TRY003",

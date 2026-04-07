@@ -11,7 +11,6 @@ class CommonResourceSettingsModel(ResourceSettingsModel):
     identifier = "common"
 
     include = tl.Bool(True)
-    pp_note = tl.Unicode("")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -23,14 +22,5 @@ class CommonResourceSettingsModel(ResourceSettingsModel):
                     description="SCF code",
                     default_calc_job_plugin=None,
                 ),
-                "pp": CodeModel(
-                    name="pp",
-                    description="Post-processing code",
-                    default_calc_job_plugin=None,
-                ),
             }
         )
-
-    def set_engine_resources(self, engine_resources: dict[str, str], pp_note: str = ""):
-        super().set_engine_resources(engine_resources)
-        self.pp_note = pp_note if "pp" not in engine_resources else ""

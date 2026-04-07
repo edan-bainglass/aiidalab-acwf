@@ -1,8 +1,8 @@
 from aiidalab_acwf.common.code.model import CodeModel
-from aiidalab_acwf.common.panel import PluginResourceSettingsModel
+from aiidalab_acwf.common.panel import ResourceSettingsModel
 
 
-class AfmResourceSettingsModel(PluginResourceSettingsModel):
+class AfmResourceSettingsModel(ResourceSettingsModel):
     title = "AFM"
     identifier = "afm"
 
