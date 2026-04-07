@@ -218,6 +218,26 @@ class ResourceSettingsPanel(Panel[RSM]):
         super().__init__(model, **kwargs)
         self.code_widgets = {}
 
+    def render(self):
+        if self.rendered:
+            return
+
+        self.code_widgets_container = ipw.VBox()
+
+        self.children = [
+            self.code_widgets_container,
+        ]
+
+        self.rendered = True
+
+        for _, code_model in self._model.get_models():
+            code_model.observe(
+                lambda _, model=code_model: self._toggle_code(model),
+                "is_active",
+            )
+            if code_model.is_active:
+                self._toggle_code(code_model)
+
     def register_code_trait_callbacks(self, code_model: CodeModel):
         """Registers event handlers on code model traits."""
         code_model.observe(
@@ -301,6 +321,16 @@ class ResourceSettingsPanel(Panel[RSM]):
             self._on_code_options_change,
             "options",
         )
+
+        def toggle_visibility(_=None, model=code_model, widget=code_widget):
+            widget.layout.display = "block" if model.is_active else "none"
+
+        code_model.observe(
+            toggle_visibility,
+            "is_active",
+        )
+        toggle_visibility()
+
         code_widgets = self.code_widgets_container.children[:-1]  # type: ignore
         self.code_widgets_container.children = [*code_widgets, code_widget]
         code_model.is_rendered = True

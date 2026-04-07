@@ -98,7 +98,7 @@ class AcwfAppWorkChain(WorkChain):
                 cls.run_scf,
                 cls.inspect_scf,
             ),
-            cls.run_plugins,
+            cls.run_composite_workflow,
             cls.inspect_plugins,
         )
 
@@ -133,9 +133,10 @@ class AcwfAppWorkChain(WorkChain):
         builder.properties = orm.List(properties)
         builder.engine = orm.Str(engine)
 
-        common_resources = all_resources["common"]
-
         if not properties:
+            # We fallback on running an SCF calculation using the common relaxation workflow.
+
+            common_resources = all_resources["common"]
             scf_code = common_resources["codes"]["scf"]
             scf_parameters = parameters["common"]
             scf_parameters["engines"] = {
@@ -154,20 +155,22 @@ class AcwfAppWorkChain(WorkChain):
             scf_parameters.update(kwargs)
             builder.scf = scf_parameters
         else:
+            # We remove the SCF namespace and defer to the composite workflows.
+
             builder.pop("scf", None)
 
-        for name, entry_point in plugin_entries.items():
-            if name in properties:
-                plugin_builder = entry_point["get_builder"](
-                    builder.structure,
-                    shallow_copy_nested_dict(parameters),
-                    all_resources[name]["codes"],
-                    engine=engine,
-                    **kwargs,
-                )
-                setattr(builder, name, plugin_builder)
-            else:
-                builder.pop(name, None)
+            for name, entry_point in plugin_entries.items():
+                if name in properties:
+                    plugin_builder = entry_point["get_builder"](
+                        builder.structure,
+                        shallow_copy_nested_dict(parameters),
+                        all_resources[name]["codes"],
+                        engine=engine,
+                        **kwargs,
+                    )
+                    setattr(builder, name, plugin_builder)
+                else:
+                    builder.pop(name, None)
 
         return builder
 
@@ -208,14 +211,14 @@ class AcwfAppWorkChain(WorkChain):
             self.ctx.current_structure = workchain.outputs.relaxed_structure
             self.out("structure", self.ctx.current_structure)
 
-    def should_run_plugin(self, name):
+    def should_run_composite_workflow(self, name):
         return name in self.inputs
 
-    def run_plugins(self):
-        """Run the plugin workflows."""
+    def run_composite_workflow(self):
+        """Run the composite workflows."""
         plugin_running = {}
         for name, entry_point in plugin_entries.items():
-            if not self.should_run_plugin(name):
+            if not self.should_run_composite_workflow(name):
                 continue
             self.report(f"Run workflow: {name}")
             plugin_workchain = entry_point["workchain"]
@@ -236,7 +239,7 @@ class AcwfAppWorkChain(WorkChain):
         """Verify that the plugin workflows finished successfully."""
         self.report("Inspect plugins:")
         for name, entry_point in plugin_entries.items():
-            if not self.should_run_plugin(name):
+            if not self.should_run_composite_workflow(name):
                 continue
             workchain = self.ctx[name]
             if not workchain.is_finished_ok:

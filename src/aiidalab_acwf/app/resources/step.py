@@ -11,7 +11,7 @@ from aiidalab_acwf.common.wizard import ConfirmableDependentWizardStep
 from aiidalab_acwf.parameters import DEFAULT_PARAMETERS
 from aiidalab_acwf.plugins.utils import get_entry_items
 
-from .common import CommonResourceSettingsModel, CommonResourceSettingsPanel
+from .common import CommonResourceSettingsModel
 from .model import ResourcesStepModel
 
 DEFAULT: dict = DEFAULT_PARAMETERS  # type: ignore
@@ -33,7 +33,8 @@ class ResourcesStep(ConfirmableDependentWizardStep[ResourcesStepModel]):
             default_codes=DEFAULT.get("codes", {}),
             default_user_email=self._model.default_user_email,
         )
-        common_panel = CommonResourceSettingsPanel(model=common_model)
+        common_panel = ResourceSettingsPanel(model=common_model)
+
         for _, code_model in common_model.get_models():
             common_panel.register_code_trait_callbacks(code_model)
             code_model.observe(
@@ -47,6 +48,8 @@ class ResourcesStep(ConfirmableDependentWizardStep[ResourcesStepModel]):
             "common": common_panel,
         }
 
+        self._fetch_plugin_resource_settings()
+
         self._model.observe(
             self._on_input_structure_change,
             "structure_uuid",
@@ -59,8 +62,6 @@ class ResourcesStep(ConfirmableDependentWizardStep[ResourcesStepModel]):
             self._on_engine_change,
             "selected_engine",
         )
-
-        self._fetch_plugin_resource_settings()
 
     def reset(self):
         self._model.reset()
@@ -128,6 +129,7 @@ class ResourcesStep(ConfirmableDependentWizardStep[ResourcesStepModel]):
 
     def _post_render(self):
         super()._post_render()
+        self._refresh_resources()
         self._update_resources_panels()
 
     def _on_input_structure_change(self, _):
@@ -138,7 +140,8 @@ class ResourcesStep(ConfirmableDependentWizardStep[ResourcesStepModel]):
         self._update_resources_panels()
 
     def _on_engine_change(self, _):
-        self._refresh_resources()
+        self._apply_engine_resources()
+        self._refresh_resources(update_engine_resources=False)
         self._update_resources_panels()
 
     def _on_resource_tab_change(self, change):
@@ -149,20 +152,29 @@ class ResourcesStep(ConfirmableDependentWizardStep[ResourcesStepModel]):
         panel.render()
 
     def _on_code_selection_change(self, _):
-        self._model.sync_global_codes()
         self._model.update_blockers()
 
-    def _refresh_resources(self, _=None):
+    def _refresh_resources(self, _=None, update_engine_resources=True):
+        if update_engine_resources:
+            self._apply_engine_resources()
         for _, model in self._model.get_models():
             model.refresh_codes()
-        self._model.sync_global_codes()
+            model.update()
+        self._model.fetched_resources = True
         self._model.update_blockers()
 
     def _update_resources_panels(self):
-        children = [self.settings["common"]]
-        titles = ["Common"]
+        has_composite_workflow = any(
+            identifier != "common" and model.include
+            for identifier, model in self._model.get_models()
+        )
+
+        children = []
+        titles = []
         for identifier, model in self._model.get_models():
-            if identifier == "common" or not model.include:
+            if not model.include:
+                continue
+            if has_composite_workflow and identifier == "common":
                 continue
             panel = self.settings[identifier]
             children.append(panel)
@@ -173,8 +185,9 @@ class ResourcesStep(ConfirmableDependentWizardStep[ResourcesStepModel]):
             self.resource_tabs.children = children
             for index, title in enumerate(titles):
                 self.resource_tabs.set_title(index, title)
-            self.resource_tabs.selected_index = 0
-            children[0].render()
+            self.resource_tabs.selected_index = 0 if children else None
+            if children:
+                children[0].render()
 
     def _fetch_plugin_resource_settings(self):
         entries = get_entry_items("aiidalab_acwf", "resources")
@@ -183,6 +196,18 @@ class ResourcesStep(ConfirmableDependentWizardStep[ResourcesStepModel]):
                 default_codes=DEFAULT.get("codes", {}),
                 default_user_email=self._model.default_user_email,
             )
-            panel = resources["panel"](model=model)
+            panel = ResourceSettingsPanel(model=model)
+            for _, code_model in model.get_models():
+                panel.register_code_trait_callbacks(code_model)
+                code_model.observe(
+                    self._on_code_selection_change,
+                    "selected",
+                )
             self._model.add_model(identifier, model)
             self.settings[identifier] = panel
+
+    def _apply_engine_resources(self):
+        selected_engine = self._model.selected_engine
+        engine_resources = self._model.get_engine_calc_job_plugins(selected_engine)
+        for _, model in self._model.get_models():
+            model.set_engine_resources(engine_resources)

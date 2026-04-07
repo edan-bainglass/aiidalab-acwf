@@ -32,10 +32,10 @@ class CodeModel(Model):
     def __init__(
         self,
         *,
-        name="",
-        description,
-        default_calc_job_plugin,
-        code_widget_class=CodeResourceSetupWidget,
+        name: str = "",
+        description: str = "",
+        default_calc_job_plugin: str | None = None,
+        code_widget_class: type[CodeResourceSetupWidget] = CodeResourceSetupWidget,
     ):
         self.name = name
         self.description = description

@@ -20,7 +20,6 @@ class CommonResourceSettingsModel(ResourceSettingsModel):
                 "scf": CodeModel(
                     name="scf",
                     description="SCF code",
-                    default_calc_job_plugin=None,
                 ),
             }
         )

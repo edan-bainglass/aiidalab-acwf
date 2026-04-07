@@ -7,16 +7,6 @@ from aiidalab_acwf.common.mixins import HasInputStructure, HasModels
 from aiidalab_acwf.common.panel import ResourceSettingsModel
 from aiidalab_acwf.common.wizard import ConfirmableDependentWizardStepModel, State
 
-ENGINE_CODE_MAP = {
-    "quantum_espresso": {
-        "scf": "quantumespresso.pw",
-        "pp": "quantumespresso.pp",
-    },
-    "cp2k": {
-        "scf": "cp2k",
-    },
-}
-
 
 class ResourcesStepModel(
     ConfirmableDependentWizardStepModel,
@@ -44,6 +34,16 @@ class ResourcesStepModel(
         "fetched_resources",
     ]
 
+    _ENGINE_CALC_JOB_PLUGIN_MAP = {
+        "quantum_espresso": {
+            "scf": "quantumespresso.pw",
+            "pp": "quantumespresso.pp",
+        },
+        "cp2k": {
+            "scf": "cp2k",
+        },
+    }
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.confirmation_exceptions.append("fetched_resources")
@@ -56,11 +56,15 @@ class ResourcesStepModel(
         self.update_blockers()
 
     def update_plugin_inclusion(self):
-        if not self.input_parameters:
-            return
         properties = set(self.input_parameters.get("properties", []))
         for identifier, model in self.get_models():
-            model.include = identifier in properties
+            if identifier == "common":
+                model.include = not properties
+            else:
+                model.include = identifier in properties
+
+    def get_engine_calc_job_plugins(self, engine: str) -> dict:
+        return self._ENGINE_CALC_JOB_PLUGIN_MAP.get(engine, {})
 
     def get_model_state(self) -> dict:
         state = {
