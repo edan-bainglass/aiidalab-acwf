@@ -137,8 +137,8 @@ class Confirmable(tl.HasTraits):
         self.confirmed = True
 
     @tl.observe(tl.All)
-    def _on_any_change(self, change):
-        if change and change["name"] not in self.confirmation_exceptions:
+    def _on_any_change(self, change: dict):
+        if not self.locked and change["name"] not in self.confirmation_exceptions:
             self._unconfirm()
 
     def _unconfirm(self):
