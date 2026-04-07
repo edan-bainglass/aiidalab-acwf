@@ -11,7 +11,11 @@ from .model import CommonResourceSettingsModel
 class CommonResourceSettingsPanel(ResourceSettingsPanel[CommonResourceSettingsModel]):
     def __init__(self, model, **kwargs):
         super().__init__(model, **kwargs)
-        self._model.observe(self._on_pp_note_change, "pp_note")
+
+        self._model.observe(
+            self._on_pp_note_change,
+            "pp_note",
+        )
 
     def render(self):
         if self.rendered:
@@ -33,6 +37,11 @@ class CommonResourceSettingsPanel(ResourceSettingsPanel[CommonResourceSettingsMo
             if code_model.is_active:
                 self._toggle_code(code_model)
 
+    def _on_pp_note_change(self, _):
+        if not self.rendered:
+            return
+        self.pp_note.layout.display = "block" if self._model.pp_note else "none"
+
     def _render_code_widget(self, code_model: CodeModel, code_widget):
         super()._render_code_widget(code_model, code_widget)
 
@@ -44,8 +53,3 @@ class CommonResourceSettingsPanel(ResourceSettingsPanel[CommonResourceSettingsMo
 
         code_model.observe(toggle_visibility, "is_active")
         toggle_visibility()
-
-    def _on_pp_note_change(self, _):
-        if not self.rendered:
-            return
-        self.pp_note.layout.display = "block" if self._model.pp_note else "none"

@@ -7,13 +7,15 @@ from aiidalab_acwf.common.panel import ResourceSettingsModel
 
 
 class CommonResourceSettingsModel(ResourceSettingsModel):
+    title = "Common codes"
+    identifier = "common"
+
     include = tl.Bool(True)
     pp_note = tl.Unicode("")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.identifier = "common"
-        self.title = "Common codes"
+
         self.add_models(
             {
                 "scf": CodeModel(
