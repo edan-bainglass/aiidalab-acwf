@@ -106,7 +106,7 @@ class ConfigurationStep(ConfirmableDependentWizardStep[ConfigurationStepModel]):
             children=[
                 ipw.VBox(
                     children=[
-                        InAppGuide(identifier="properties-selection"),
+                        InAppGuide(identifier="composite-workflow-selection"),
                         self.available_properties,
                     ]
                 ),

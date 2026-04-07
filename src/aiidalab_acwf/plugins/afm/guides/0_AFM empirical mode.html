@@ -1,0 +1,99 @@
+<div id="guide-header">
+  You have activated the AFM empirical guide. In this guide, you will run a
+  common workflow for atomic force microscopy (AFM) image simulation. Begin by
+  opening step 1.
+</div>
+
+<div id="structure-step">
+  <div class="alert alert-success">
+    <h4>Tasks</h4>
+    <ol>
+      <li>In the <b>From SMILES</b> tab, enter: C1=CC=CC=C1</li>
+      <li>Click <b>Generate structure</b></li>
+      <li>Confirm to continue</li>
+    </ol>
+  </div>
+</div>
+
+<div id="configuration-step">
+  Configure the common workflow and AFM plugin behavior.
+  <div class="alert alert-success">
+    <h4>Tasks</h4>
+    <ol>
+      <li>Skip geometry optimization by selecting <b>Structure as is</b></li>
+      <li>Enable the AFM plugin in step 2.1 and enable AFM</li>
+      <li>Open step 2.2 to configure calculation settings</li>
+    </ol>
+  </div>
+</div>
+
+<div id="calculation-settings">
+  <div class="alert alert-success">
+    <h4>Tasks</h4>
+    <ol>
+      <li>
+        In the <b>Common settings</b> panel:
+        <ol style="list-style-type: lower-roman">
+          <li>Select an insulator electronic type</li>
+          <li>Select the fast protocol</li>
+          <li>Keep remaining defaults</li>
+        </ol>
+      </li>
+      <li>
+        In the <b>AFM</b> panel:
+        <ol style="list-style-type: lower-roman">
+          <li>Set mode to empirical</li>
+          <li>Keep remaining defaults</li>
+        </ol>
+      </li>
+      <li>Confirm to continue</li>
+    </ol>
+  </div>
+</div>
+
+<div id="resources-step">
+  <div class="alert alert-success">
+    <h4>Tasks</h4>
+    <ol>
+      <li>Select Quantum ESPRESSO as the engine</li>
+      <li>Check the available local/default codes</li>
+      <li>Keep nodes/cpus minimal (1 node, 1 cpu)</li>
+      <li>Confirm to continue</li>
+    </ol>
+  </div>
+</div>
+
+<div id="submission-step">
+  <div class="alert alert-success">
+    <h4>Tasks</h4>
+    <ol>
+      <li>Review/edit the label and description</li>
+      <li>Click <b>Submit</b> to launch the workflow</li>
+    </ol>
+  </div>
+</div>
+
+<div id="results-step">
+  <div class="alert alert-success">
+    <h4>Tasks</h4>
+    <ol>
+      <li>Open the <b>Results</b> panel</li>
+      <li>Switch to the <b>AFM</b> results panel</li>
+      <li>Once the calculation is complete, click on <b>Load results</b></li>
+      <li>Inspect the generated plot series</li>
+    </ol>
+  </div>
+</div>
+
+<div id="post-guide">
+  <h3>Post-guide exercise</h3>
+  Congratulations on completing the tutorial! As a next step, try the following
+  exercises:
+  <div class="alert alert-success">
+    <h4>Tasks</h4>
+    <ol>
+      <li>Compare runs with different scan or tip parameters</li>
+      <li>Rerun with Hartree mode and compare results</li>
+    </ol>
+  </div>
+</div>

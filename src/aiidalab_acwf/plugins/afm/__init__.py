@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from aiidalab_acwf.common.panel import PluginResourceSettingsPanel
 
 from .configuration import (
@@ -43,5 +45,9 @@ afm = {
     "result": {
         "model": AfmResultsModel,
         "panel": AfmResultsPanel,
+    },
+    "guides": {
+        "title": "Atomic force microscopy (AFM)",
+        "path": Path(__file__).resolve().parent / "guides",
     },
 }

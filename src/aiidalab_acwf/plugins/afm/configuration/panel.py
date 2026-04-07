@@ -125,7 +125,7 @@ class AfmConfigurationSettingsPanel(ConfigurationSettingsPanel[AfmConfigurationS
         ipw.link((self._model, "amplitude"), (amplitude, "value"))
 
         self.children = [
-            InAppGuide(identifier="afm-configuration-settings"),
+            InAppGuide(identifier="afm-settings-panel"),
             mode,
             ipw.HTML("<h3>Force-field grid parameters</h3>"),
             pbc,

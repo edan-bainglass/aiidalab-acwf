@@ -1,0 +1,126 @@
+<div id="guide-header">
+  You have activated the common relaxation guide. In this guide, you will run a
+  base ACWF relaxation workflow. Begin by opening step 1.
+</div>
+
+<div id="structure-step">
+  Step 1 provides several options for selecting the input structure. Once
+  selected, you can visualize and edit the structure before confirming it.
+  <div class="alert alert-success">
+    <h4>Tasks</h4>
+    <ol>
+      <li>Select Si2 from the <b>Browse AiiDA database</b> panel</li>
+      <li>Confirm to continue</li>
+    </ol>
+  </div>
+  <div class="alert alert-warning">
+    <b>Note:</b> Changing the structure after confirmation resets downstream
+    steps.
+  </div>
+</div>
+
+<div id="configuration-step">
+  In step 2, you configure the parameters of the workflow, including structure
+  geometry optimization (relaxation), common workflow parameters, e.g., the
+  calculation protocol, and settings specific to selected composite workflows.
+  <div class="alert alert-success">
+    <h4>Tasks</h4>
+    <ol>
+      <li>Choose the <b>Full geometry</b> structure relaxation option</li>
+      <li>Skip step 2.1 (composite workflow selection)</li>
+      <li>Follow instructions in step 2.2</li>
+    </ol>
+  </div>
+  <div class="alert alert-warning">
+    <b>Note:</b> The base relaxation workflow is triggered when no composite
+    workflow is selected in step 2.1.
+  </div>
+</div>
+
+<div id="calculation-settings">
+  <div class="alert alert-success">
+    <h4>Tasks</h4>
+    <ol>
+      <li>Keep defaults for electronic and spin settings</li>
+      <li>Select the <b>Fast</b> protocol</li>
+      <li>Confirm to continue</li>
+    </ol>
+  </div>
+</div>
+
+<div id="resources-step">
+  In step 3, you select the quantum engine used to drive SCF calculations, its
+  codes relevant to the workflow, and the computational resources.
+  <div class="alert alert-success">
+    <h4>Tasks</h4>
+    <ol>
+      <li>Select Quantum ESPRESSO as the engine</li>
+      <li>Check the available local/default codes</li>
+      <li>Keep nodes/cpus minimal (1 node, 1 cpu)</li>
+      <li>Confirm to continue</li>
+    </ol>
+  </div>
+</div>
+
+<div id="submission-step">
+  In step 4, you provide workflow metadata (label and description) and submit
+  the workflow.
+  <div class="alert alert-success">
+    <h4>Tasks</h4>
+    <ol>
+      <li>Review/edit the label and description</li>
+      <li>Click <b>Submit</b> to launch the workflow</li>
+    </ol>
+  </div>
+</div>
+
+<div id="results-step">
+  In step 5, you can review workflow parameters, monitor execution status, and
+  explore results.
+  <div class="alert alert-success">
+    <h4>Tasks</h4>
+    <ol>
+      <li>Open <b>Summary</b> for an overview of submitted inputs</li>
+      <li>Open <b>Status</b> to follow the workflow execution</li>
+      <li>Open <b>Results</b> to view results once complete</li>
+    </ol>
+  </div>
+</div>
+
+<div id="summary-panel">
+  The summary panel contains workflow metadata and download tools.
+</div>
+
+<div id="status-panel">
+  The status panel shows the process hierarchy and live node details.
+</div>
+
+<div id="results-panel">
+  The results panel contains per-workflow result tabs.
+  <div class="alert alert-success">
+    <h4>Tasks</h4>
+    <ol>
+      <li>Open the <b>Structure</b> tab</li>
+      <li>Compare the initial and relaxed structures</li>
+    </ol>
+  </div>
+</div>
+
+<div id="post-guide">
+  <h3>Post-guide exercises</h3>
+  Congratulations on completing the common relaxation guide! To further explore
+  the app and ACWF framework, try the following exercises:
+  <div class="alert alert-success">
+    <h4>Tasks</h4>
+    <ol>
+      <li>In the <b>Summary</b> panel, download the raw data or archive</li>
+      <li>
+        Compare the process tree in the <b>Status</b> panel with the downloaded
+        raw data folders
+      </li>
+      <li>
+        Run a second structure with a different protocol and compare outcomes.
+      </li>
+    </ol>
+  </div>
+</div>

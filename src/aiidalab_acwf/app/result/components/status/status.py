@@ -3,6 +3,7 @@ from __future__ import annotations
 import ipywidgets as ipw
 
 from aiidalab_acwf.app.result.components import ResultsComponent
+from aiidalab_acwf.common.infobox import InAppGuide
 from aiidalab_widgets_base import ProcessNodesTreeWidget
 from aiidalab_widgets_base.viewers import AiidaNodeViewWidget
 
@@ -25,6 +26,7 @@ class WorkChainStatusPanel(ResultsComponent[WorkChainStatusModel]):
         )
 
         self.children = [
+            InAppGuide(identifier="status-panel"),
             self.process_tree,
             self.node_view,
         ]

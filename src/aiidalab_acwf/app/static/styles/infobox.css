@@ -4,6 +4,7 @@
   padding: 1em;
   border-left: 3px solid #add8e6;
   background-color: #d9edf7;
+  text-align: left;
 }
 .info-box .widget-html-content {
   line-height: 1.5;
@@ -19,8 +20,7 @@
 #about p:last-of-type {
   margin-bottom: 0.5em;
 }
-.in-app-guide:has(#guide-header),
-.in-app-guide:has(#post-guide) {
+.in-app-guide:has(#guide-header) {
   background-color: var(--color-success);
   border-color: #8fbc8f;
 }

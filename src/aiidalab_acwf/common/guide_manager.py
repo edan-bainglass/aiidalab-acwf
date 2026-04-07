@@ -20,7 +20,7 @@ class GuideManager(tl.HasTraits):
         super().__init__(*args, **kwargs)
         guides = Path(aiidalab_acwf.__file__).parent.joinpath("guides").glob("*.html")
         self._guides = {
-            "Relaxation and electronic structure": {
+            "Common workflows": {
                 guide.stem.split("_", maxsplit=1)[1]: guide.absolute()
                 for guide in sorted(guides, key=lambda x: x.stem.split("_")[0])
             }
@@ -86,7 +86,7 @@ class GuideManager(tl.HasTraits):
 
     def _fetch_plugin_guides(self):
         """Fetch guides from plugins."""
-        entries: dict = get_entry_items("acwf", "guides")
+        entries: dict = get_entry_items("aiidalab_acwf", "guides")
         for plugin_identifier, guides in entries.items():
             if isinstance(guides, dict):
                 identifier = guides.get("title", plugin_identifier)

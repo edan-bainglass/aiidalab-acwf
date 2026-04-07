@@ -1,6 +1,7 @@
 import ipywidgets as ipw
 
 from aiidalab_acwf.app.result.components import ResultsComponent
+from aiidalab_acwf.common.infobox import InAppGuide
 from aiidalab_acwf.parameters import DEFAULT_PARAMETERS
 
 from .model import WorkflowSummaryModel
@@ -75,6 +76,7 @@ class WorkflowSummary(ResultsComponent[WorkflowSummaryModel]):
         )
 
         self.children = [
+            InAppGuide(identifier="summary-panel"),
             container,
             self.failed_calculation_report,
         ]
