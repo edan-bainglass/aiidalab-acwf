@@ -117,6 +117,8 @@ class SubmissionStepModel(
             process_node.base.extras.set("parameters", serialize(parameters))
             process_node.base.extras.set("resources", serialize({"engine": engine, **resources}))
             process_node.base.extras.set("structure", self.input_structure.get_formula())
+            process_node.base.extras.set("properties", parameters["properties"])
+            process_node.base.extras.set("relax_type", parameters["common"]["relax_type"])
             self.process_uuid = process_node.uuid
             pk = process_node.pk
             display(Javascript(f"window.history.pushState(null, '', '?pk={pk}');"))
