@@ -24,7 +24,7 @@ class ResourcesStepModel(
             ("CP2K", "cp2k"),
         ],
     )
-    selected_engine = tl.Unicode("quantum_espresso", allow_none=True)
+    engine = tl.Unicode("quantum_espresso", allow_none=True)
 
     fetched_resources = tl.Bool(False)
 
@@ -33,16 +33,6 @@ class ResourcesStepModel(
         "input_parameters",
         "fetched_resources",
     ]
-
-    _ENGINE_CALC_JOB_PLUGIN_MAP = {
-        "quantum_espresso": {
-            "scf": "quantumespresso.pw",
-            "pp": "quantumespresso.pp",
-        },
-        "cp2k": {
-            "scf": "cp2k",
-        },
-    }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -63,9 +53,6 @@ class ResourcesStepModel(
             else:
                 model.include = identifier in properties
 
-    def get_engine_calc_job_plugins(self, engine: str) -> dict:
-        return self._ENGINE_CALC_JOB_PLUGIN_MAP.get(engine, {})
-
     def get_model_state(self) -> dict:
         state = {
             identifier: model.get_model_state()
@@ -73,14 +60,14 @@ class ResourcesStepModel(
             if model.include
         }
         return {
-            "engine": self.selected_engine,
+            "engine": self.engine,
             **state,
         }
 
     def set_model_state(self, state: dict):
         if not state:
             return
-        self.selected_engine = state.get("engine", self.selected_engine)
+        self.engine = state.get("engine", self.engine)
         for identifier, model in self.get_models():
             if identifier in state:
                 model.include = True

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import traitlets as tl
-
 from aiidalab_acwf.common.code.model import CodeModel
 from aiidalab_acwf.common.panel import ResourceSettingsModel
 
@@ -9,12 +7,6 @@ from aiidalab_acwf.common.panel import ResourceSettingsModel
 class AfmResourceSettingsModel(ResourceSettingsModel):
     title = "AFM"
     identifier = "afm"
-
-    input_parameters = tl.Dict()
-
-    dependencies = [
-        "input_parameters",
-    ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

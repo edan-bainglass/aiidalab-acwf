@@ -24,8 +24,6 @@ class SubmissionStepModel(
     process_label = tl.Unicode("")
     process_description = tl.Unicode("")
 
-    warning_messages = tl.Unicode("")
-
     _dependencies = [
         "structure_uuid",
         "input_parameters",

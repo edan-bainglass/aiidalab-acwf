@@ -143,12 +143,23 @@ class ConfigurationSettingsPanel(Panel[PM]):
 class ResourceSettingsModel(PanelModel, HasModels[CodeModel]):
     """Base model for resource setting models."""
 
-    global_codes = tl.Dict(
-        key_trait=tl.Unicode(),
-        value_trait=tl.Dict(),
-    )
+    engine = tl.Unicode(allow_none=True)
+    input_parameters = tl.Dict()
 
-    warning_messages = tl.Unicode("")
+    dependencies = [
+        "engine",
+        "input_parameters",
+    ]
+
+    _ENGINE_CALC_JOB_PLUGIN_MAP = {
+        "quantum_espresso": {
+            "scf": "quantumespresso.pw",
+            "pp": "quantumespresso.pp",
+        },
+        "cp2k": {
+            "scf": "cp2k",
+        },
+    }
 
     def __init__(self, default_user_email: str, *args, **kwargs):
         self.default_codes: dict[str, dict] = kwargs.pop("default_codes", {}) or {}
@@ -195,14 +206,12 @@ class ResourceSettingsModel(PanelModel, HasModels[CodeModel]):
             if identifier in code_data:
                 code_model.set_model_state(code_data[identifier])
 
-    def set_engine_resources(self, engine_resources: dict[str, str]):
+    def set_engine_resources(self):
+        engine_resources = self._ENGINE_CALC_JOB_PLUGIN_MAP.get(self.engine, {})
         for code_name, code_model in self.get_models():
             calc_job_plugin = engine_resources.get(code_name)
             code_model.default_calc_job_plugin = calc_job_plugin
-            if calc_job_plugin:
-                code_model.activate()
-            else:
-                code_model.deactivate()
+            code_model.activate() if calc_job_plugin else code_model.deactivate()
 
     def _check_blockers(self):
         return []

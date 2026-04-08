@@ -64,17 +64,10 @@ class SubmissionStep(ConfirmableDependentWizardStep[SubmissionStepModel]):
             (self.process_description, "value"),
         )
 
-        self.warning_messages = ipw.HTML()
-        ipw.dlink(
-            (self._model, "warning_messages"),
-            (self.warning_messages, "value"),
-        )
-
         self.content.children = [
             InAppGuide(identifier="submission-step"),
             self.process_label,
             self.process_description,
-            self.warning_messages,
             self.confirm_box,
         ]
 

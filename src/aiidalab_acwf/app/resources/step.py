@@ -60,7 +60,7 @@ class ResourcesStep(ConfirmableDependentWizardStep[ResourcesStepModel]):
         )
         self._model.observe(
             self._on_engine_change,
-            "selected_engine",
+            "engine",
         )
 
     def reset(self):
@@ -75,7 +75,7 @@ class ResourcesStep(ConfirmableDependentWizardStep[ResourcesStepModel]):
             (self.engine_selector, "options"),
         )
         ipw.link(
-            (self._model, "selected_engine"),
+            (self._model, "engine"),
             (self.engine_selector, "value"),
         )
 
@@ -207,7 +207,5 @@ class ResourcesStep(ConfirmableDependentWizardStep[ResourcesStepModel]):
             self.settings[identifier] = panel
 
     def _apply_engine_resources(self):
-        selected_engine = self._model.selected_engine
-        engine_resources = self._model.get_engine_calc_job_plugins(selected_engine)
-        for _, model in self._model.get_models():
-            model.set_engine_resources(engine_resources)
+        for _, resources_model in self._model.get_models():
+            resources_model.set_engine_resources()
