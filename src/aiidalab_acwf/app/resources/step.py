@@ -140,7 +140,7 @@ class ResourcesStep(ConfirmableDependentWizardStep[ResourcesStepModel]):
         self._update_resources_panels()
 
     def _on_engine_change(self, _):
-        self._refresh_resources()
+        self._model.update(specific="engine")
         self._update_resources_panels()
 
     def _on_resource_tab_change(self, change):
@@ -154,11 +154,7 @@ class ResourcesStep(ConfirmableDependentWizardStep[ResourcesStepModel]):
         self._model.update_blockers()
 
     def _refresh_resources(self, _=None):
-        for _, resources_model in self._model.get_models():
-            resources_model.set_engine_resources()
-            resources_model.refresh_codes()
-            resources_model.update()
-        self._model.update_blockers()
+        self._model.update()
 
     def _update_resources_panels(self):
         # TODO simplify - treat SCF as another property, included only if no selected composites

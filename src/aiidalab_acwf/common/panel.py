@@ -176,16 +176,6 @@ class ResourceSettingsModel(PanelModel, HasModels[CodeModel]):
         default_code = self.default_codes.get(code_key, {}).get("code") if code_key else None
         code_model.update(self.default_user_email, default_code)
 
-    def refresh_codes(self):
-        for _, code_model in self.get_models():
-            code_key = (
-                code_model.default_calc_job_plugin.split(".")[-1]
-                if code_model.default_calc_job_plugin
-                else None
-            )
-            default_code = self.default_codes.get(code_key, {}).get("code") if code_key else None
-            code_model.update(self.default_user_email, default_code, refresh=True)
-
     def get_model_state(self):
         return {
             "codes": {
@@ -201,12 +191,29 @@ class ResourceSettingsModel(PanelModel, HasModels[CodeModel]):
             if identifier in code_data:
                 code_model.set_model_state(code_data[identifier])
 
-    def set_engine_resources(self):
+    def update(self, specific=""):
+        super().update(specific)
+        if not specific or specific == "engine":
+            self.toggle_engine_codes()
+        if not specific or specific in ("engine", "codes"):
+            self.update_codes()
+
+    def toggle_engine_codes(self):
         engine_resources = self._ENGINE_CALC_JOB_PLUGIN_MAP.get(self.engine, {})
         for code_name, code_model in self.get_models():
             calc_job_plugin = engine_resources.get(code_name)
             code_model.default_calc_job_plugin = calc_job_plugin
             code_model.activate() if calc_job_plugin else code_model.deactivate()
+
+    def update_codes(self):
+        for _, code_model in self.get_models():
+            code_key = (
+                code_model.default_calc_job_plugin.split(".")[-1]
+                if code_model.default_calc_job_plugin
+                else None
+            )
+            default_code = self.default_codes.get(code_key, {}).get("code") if code_key else None
+            code_model.update(self.default_user_email, default_code, refresh=True)
 
     def _check_blockers(self):
         return []

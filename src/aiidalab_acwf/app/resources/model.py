@@ -39,25 +39,25 @@ class ResourcesStepModel(
         self.confirmation_exceptions.append("fetched_resources")
         self.default_user_email = orm.User.collection.get_default().email
 
-    def update(self):
+    def update(self, specific=""):
         self.update_plugin_inclusion()
-        for _, model in self.get_models():
-            model.update()
+        for _, resources_model in self.get_models():
+            resources_model.update(specific)
         self.update_blockers()
 
     def update_plugin_inclusion(self):
         properties = set(self.input_parameters.get("properties", []))
-        for identifier, model in self.get_models():
+        for identifier, resources_model in self.get_models():
             if identifier == "common":
-                model.include = not properties
+                resources_model.include = not properties
             else:
-                model.include = identifier in properties
+                resources_model.include = identifier in properties
 
     def get_model_state(self) -> dict:
         state = {
-            identifier: model.get_model_state()
-            for identifier, model in self.get_models()
-            if model.include
+            identifier: resources_model.get_model_state()
+            for identifier, resources_model in self.get_models()
+            if resources_model.include
         }
         return {
             "engine": self.engine,
@@ -68,10 +68,10 @@ class ResourcesStepModel(
         if not state:
             return
         self.engine = state.get("engine", self.engine)
-        for identifier, model in self.get_models():
+        for identifier, resources_model in self.get_models():
             if identifier in state:
-                model.include = True
-                model.set_model_state(state[identifier])
+                resources_model.include = True
+                resources_model.set_model_state(state[identifier])
 
     def update_state(self):
         if self.confirmed:
@@ -86,8 +86,8 @@ class ResourcesStepModel(
         with self.hold_trait_notifications():
             self.input_parameters = {}
             self.fetched_resources = False
-            for identifier, model in self.get_models():
-                model.include = identifier == "common"
+            for identifier, resources_model in self.get_models():
+                resources_model.include = identifier == "common"
 
     def _check_blockers(self):
         if not self.has_structure:
@@ -101,9 +101,9 @@ class ResourcesStepModel(
             yield "Resource settings are still loading"
             return
 
-        for identifier, model in self.get_models():
-            if not model.include:
+        for identifier, resources_model in self.get_models():
+            if not resources_model.include:
                 continue
-            for code_name, code_model in model.get_models():
+            for code_name, code_model in resources_model.get_models():
                 if code_model.is_active and code_model.selected is None:
                     yield f"No code selected for '{code_name}' in panel '{identifier}'."

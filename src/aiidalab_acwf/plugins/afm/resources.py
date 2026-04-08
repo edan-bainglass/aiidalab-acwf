@@ -24,6 +24,8 @@ class AfmResourceSettingsModel(ResourceSettingsModel):
         )
 
     def update(self, specific=""):
+        super().update(specific)
+
         afm_parameters = self.input_parameters.get("afm", {})
         common_parameters = self.input_parameters.get("common", {})
 
