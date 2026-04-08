@@ -140,45 +140,43 @@ class ResourcesStep(ConfirmableDependentWizardStep[ResourcesStepModel]):
         self._update_resources_panels()
 
     def _on_engine_change(self, _):
-        self._apply_engine_resources()
-        self._refresh_resources(update_engine_resources=False)
+        self._refresh_resources()
         self._update_resources_panels()
 
     def _on_resource_tab_change(self, change):
         tab_index = change["new"]
         if tab_index is None:
             return
-        panel: ResourceSettingsPanel = self.resource_tabs.children[tab_index]
-        panel.render()
+        resources_panel: ResourceSettingsPanel = self.resource_tabs.children[tab_index]
+        resources_panel.render()
 
     def _on_code_selection_change(self, _):
         self._model.update_blockers()
 
-    def _refresh_resources(self, _=None, update_engine_resources=True):
-        if update_engine_resources:
-            self._apply_engine_resources()
-        for _, model in self._model.get_models():
-            model.refresh_codes()
-            model.update()
-        self._model.fetched_resources = True
+    def _refresh_resources(self, _=None):
+        for _, resources_model in self._model.get_models():
+            resources_model.set_engine_resources()
+            resources_model.refresh_codes()
+            resources_model.update()
         self._model.update_blockers()
 
     def _update_resources_panels(self):
+        # TODO simplify - treat SCF as another property, included only if no selected composites
         has_composite_workflow = any(
-            identifier != "common" and model.include
-            for identifier, model in self._model.get_models()
+            identifier != "common" and resources_model.include
+            for identifier, resources_model in self._model.get_models()
         )
 
         children = []
         titles = []
-        for identifier, model in self._model.get_models():
-            if not model.include:
+        for identifier, resources_model in self._model.get_models():
+            if not resources_model.include:
                 continue
             if has_composite_workflow and identifier == "common":
                 continue
-            panel = self.settings[identifier]
-            children.append(panel)
-            titles.append(model.title)
+            resources_panel = self.settings[identifier]
+            children.append(resources_panel)
+            titles.append(resources_model.title)
 
         if self.rendered:
             self.resource_tabs.selected_index = None
@@ -192,20 +190,18 @@ class ResourcesStep(ConfirmableDependentWizardStep[ResourcesStepModel]):
     def _fetch_plugin_resource_settings(self):
         entries = get_entry_items("aiidalab_acwf", "resources")
         for identifier, resources in entries.items():
-            model = resources["model"](
+            resources_model = resources["model"](
                 default_codes=DEFAULT.get("codes", {}),
                 default_user_email=self._model.default_user_email,
             )
-            panel = ResourceSettingsPanel(model=model)
-            for _, code_model in model.get_models():
-                panel.register_code_trait_callbacks(code_model)
+            resources_panel = ResourceSettingsPanel(model=resources_model)
+            for _, code_model in resources_model.get_models():
+                resources_panel.register_code_trait_callbacks(code_model)
                 code_model.observe(
                     self._on_code_selection_change,
                     "selected",
                 )
-            self._model.add_model(identifier, model)
-            self.settings[identifier] = panel
+            self._model.add_model(identifier, resources_model)
+            self.settings[identifier] = resources_panel
 
-    def _apply_engine_resources(self):
-        for _, resources_model in self._model.get_models():
-            resources_model.set_engine_resources()
+        self._model.fetched_resources = True

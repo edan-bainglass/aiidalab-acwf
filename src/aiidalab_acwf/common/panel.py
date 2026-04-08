@@ -166,15 +166,15 @@ class ResourceSettingsModel(PanelModel, HasModels[CodeModel]):
         self.default_user_email = default_user_email
         super().__init__(*args, **kwargs)
 
-    def add_model(self, identifier, model):
-        super().add_model(identifier, model)
+    def add_model(self, identifier: str, code_model: CodeModel):
+        super().add_model(identifier, code_model)
         code_key = (
-            model.default_calc_job_plugin.split(".")[-1] if model.default_calc_job_plugin else None
+            code_model.default_calc_job_plugin.split(".")[-1]
+            if code_model.default_calc_job_plugin
+            else None
         )
-        model.update(
-            user_email=self.default_user_email,
-            default_code=(self.default_codes.get(code_key, {}).get("code") if code_key else None),
-        )
+        default_code = self.default_codes.get(code_key, {}).get("code") if code_key else None
+        code_model.update(self.default_user_email, default_code)
 
     def refresh_codes(self):
         for _, code_model in self.get_models():
@@ -183,13 +183,8 @@ class ResourceSettingsModel(PanelModel, HasModels[CodeModel]):
                 if code_model.default_calc_job_plugin
                 else None
             )
-            code_model.update(
-                user_email=self.default_user_email,
-                default_code=(
-                    self.default_codes.get(code_key, {}).get("code") if code_key else None
-                ),
-                refresh=True,
-            )
+            default_code = self.default_codes.get(code_key, {}).get("code") if code_key else None
+            code_model.update(self.default_user_email, default_code, refresh=True)
 
     def get_model_state(self):
         return {
