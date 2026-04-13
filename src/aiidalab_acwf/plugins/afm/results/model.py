@@ -23,9 +23,8 @@ class AfmResultsModel(ResultsModel):
         self.plot_entries = self._collect_plot_entries()
 
     def _collect_plot_entries(self) -> list[dict]:
-        folder = self._get_scan_folder()
-        if folder is None:
-            return []
+        outputs = self._get_child_outputs()
+        folder = outputs.results.afm_scan
 
         entries = []
         for name in sorted(folder.list_object_names()):
@@ -49,20 +48,6 @@ class AfmResultsModel(ResultsModel):
                     entries.append({"name": path, "payload": payload})
 
         return entries
-
-    def _get_scan_folder(self) -> orm.FolderData | None:
-        outputs = self._get_child_outputs()
-        for key, value in outputs.items():
-            if key.startswith("Q") and isinstance(value, orm.FolderData):
-                return value
-
-        namespace = outputs.get("results") if isinstance(outputs, dict) else None
-        if namespace is not None:
-            for key, value in namespace.items():
-                if key.startswith("Q") and isinstance(value, orm.FolderData):
-                    return value
-
-        return None
 
     @staticmethod
     def _read_binary(folder: orm.FolderData, path: str) -> bytes | None:
